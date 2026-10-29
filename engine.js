@@ -115,7 +115,7 @@
     $("view3d").classList.add("active");$("viewTop").classList.remove("active");
   }
   function navigateCamera(dt){
-    if(!navKeys.size || W<=1000 || document.hidden || !$('help').hidden || editingControl(document.activeElement) || (pointer && pointer.button !== 2))return;
+    if(!navKeys.size || W<=1000 || document.hidden || !$('help').hidden || window.EarthUI?.isModalOpen() || editingControl(document.activeElement) || (pointer && pointer.button !== 2))return;
     const key=c=>navKeys.has(c)?1:0, strafe=key('KeyD')-key('KeyA'),forward=key('KeyW')-key('KeyS'),rise=key('KeyE')-key('KeyQ');
     const turn=key('ArrowRight')-key('ArrowLeft'),pitch=key('ArrowDown')-key('ArrowUp');
     if(!strafe&&!forward&&!rise&&!turn&&!pitch)return;
@@ -317,7 +317,7 @@
         $(id).value = "";
       $("editColor").value = "#53657a";
       $("bodySwatch").style.background = "#53657a";
-      $("bodyName").textContent = "Ничего не выбрано";
+      $("bodyName").textContent = "Нет объекта";
       $("bodyKind").textContent = "Щёлкните по телу";
       $("bodyId").textContent = "";
       updateLaunchNote();
@@ -725,8 +725,9 @@
   function reportImpact(result) {
     lastImpact={...result,serial:++impactSerial};
     const labels={crater:'Вмятина в поверхности',shaving:'Срезание · контакт продолжается',pass:'Тела разошлись после срезания',eroded:'Вещество разрушено в зоне контакта',atmospheric:'Газовый контакт',absorption:'Испарение → поглощение',contact:'Неупругий контакт'};
+    const newReport=$('impactReport').hidden;
     $('impactReport').hidden=false;
-    document.querySelector('[data-tab=body]').click();
+    window.EarthUI?.showImpact?.(newReport);
     const num=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:2});
     $('impactOutcome').textContent=labels[result.outcome]||result.outcome;
     $('impactDetail').textContent=result.target+' · '+num(result.speed)+' км/с';
@@ -2111,7 +2112,7 @@
     updateOrbitNote();
     $("hint").textContent =
       tl === "select"
-        ? "W/S — зум · A/D, Q/E — орбита · Shift — быстрее · ПКМ — поворот"
+        ? "ПКМ — вращение · Колесо / W S — приближение"
         : text[tl];
   }
   document
@@ -2482,7 +2483,7 @@
     $("viewTop").classList.add("active");
     $("view3d").classList.remove("active");
   };
-  $("navReturn").onclick=()=>focusPlanet();
+  $("navReturn").onclick=()=>{select(earthAnchor());focusPlanet();};
   $("navTop").onclick=()=>$("viewTop").click();
   $("clearTrails").onclick = () => {
     bodies.forEach((b) => (b.trail = []));
@@ -2643,17 +2644,6 @@
     event("Добавлена комета на вытянутой орбите");
     notify("Комета направляется к перицентру");
   };
-  document.querySelectorAll("[data-tab]").forEach(
-    (bt) =>
-      (bt.onclick = () => {
-        document
-          .querySelectorAll("[data-tab]")
-          .forEach((b) => b.classList.toggle("active", b === bt));
-        document
-          .querySelectorAll(".tab-pane")
-          .forEach((p) => (p.hidden = p.id !== "tab-" + bt.dataset.tab));
-      }),
-  );
   $("collision").onchange = () => {
     settings.collision = $("collision").value;
     baselineDirty = true;
@@ -3001,10 +2991,11 @@
       }
       return;
     }
+    if(window.EarthUI?.isModalOpen()){if(e.key==='Escape')window.EarthUI.close();return;}
     if (editing || W<=1000) return;
     if(navCodes.has(e.code)){e.preventDefault();navKeys.add(e.code);return;}
     if(e.repeat)return;
-    if(e.code==='KeyR'){e.preventDefault();focusPlanet();return;}
+    if(e.code==='KeyR'){e.preventDefault();select(earthAnchor());focusPlanet();return;}
     if(e.code==='Home'){e.preventDefault();fit();return;}
     if(e.code==='KeyT'){e.preventDefault();$('viewTop').click();return;}
     if (e.code === "Space") {
@@ -3135,6 +3126,7 @@
     leap,
     accel,
     cancelPointer,
+    clearNavigation,
     get launchPath() {
       return launchPath;
     },

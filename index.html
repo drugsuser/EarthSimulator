@@ -1,641 +1,371 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ru">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2711%27 fill=%27%23040507%27 stroke=%27%23d2c8b1%27/%3E%3Cellipse cx=%2716%27 cy=%2716%27 rx=%2715%27 ry=%274%27 transform=%27rotate(-25 16 16)%27 fill=%27none%27 stroke=%27%23d2c8b1%27/%3E%3C/svg%3E"
-    />
-    <title>EARTH SIMULATOR — гравитационная песочница</title>
-    <link rel="stylesheet" href="./style.css?v=earth-realism3" />
-  </head>
-  <body>
-    <div id="webgl"></div>
-    <canvas
-      id="space"
-      aria-label="Интерактивная трёхмерная гравитационная симуляция. Управление мышью и клавиатурой описано в справке."
-    ></canvas>
-    <header>
-      <div class="brand">
-        <div class="brandmark" aria-hidden="true"></div>
-        <div>
-          <strong>EARTH SIMULATOR</strong
-          ><small>EARTH-FOCUSED ORBIT LABORATORY</small>
-        </div>
-      </div>
-      <div class="header-rule"></div>
-      <span class="pill"
-        ><span class="dot" id="liveDot"></span
-        ><span id="liveText">СИМУЛЯЦИЯ</span></span
-      >
-      <div class="header-actions">
-        <button id="overviewBtn" title="Вписать систему">Обзор</button
-        ><button id="planetViewBtn" title="Вернуться к Земле">
-          К Земле</button
-        ><button id="fieldBtn" class="active" title="Геометрия поля — G">
-          Поле</button
-        ><button id="saveBtn" title="Сохранить в браузере">Сохранить</button
-        ><button id="exportBtn">Экспорт</button
-        ><button id="importBtn">Импорт</button
-        ><button id="helpBtn" title="Справка — H">? Справка</button
-        ><button id="cinemaBtn" title="Скрыть интерфейс — Tab">↗</button>
-      </div>
-    </header>
-    <aside class="panel left" aria-label="Сценарии и инструменты">
-      <div class="left-tabs">
-        <button data-left="scenes" class="active">Планеты</button
-        ><button data-left="create">Создать</button
-        ><button data-left="display">Вид</button>
-      </div>
-      <div class="section">
-        <div class="row between">
-          <div class="eyebrow">01 / Земля</div>
-          <button
-            id="resetBtn"
-            style="min-height: 25px; padding: 2px 7px; font-size: 11px"
-            title="Восстановить Солнечную систему"
-          >
-            ↻
-          </button>
-        </div>
-        <div class="scenario-title" id="scenarioTitle">Земля</div>
-        <div class="scenario-desc" id="scenarioDesc"></div>
-        <nav id="planetNavigator" class="planet-navigator" aria-label="Выбор планеты"></nav>
-        <div class="planet-controls">
-          <label for="rotationMode">Вращение вокруг оси</label>
-          <select id="rotationMode"><option value="showcase">Наглядное · Земля за 40 с</option><option value="physical">По времени симуляции</option></select>
-          <button id="spinToggle" class="wide" aria-pressed="false">Ⅱ Остановить вращение</button>
-          <p id="spinNote">Вращение ускорено отдельно от орбит. Пауза внизу останавливает движение по орбите.</p>
-          <label for="lightingMode">Освещение</label><select id="lightingMode"><option value="natural">Солнечный свет · день / ночь</option><option value="inspect">Рассмотреть · мягкая подсветка</option></select>
-          <a class="asset-credit" href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Карты: Solar System Scope · CC BY 4.0 ↗</a>
-        </div>
-      </div>
-      <div class="section">
-        <div class="eyebrow">02 / Вмешательство</div>
-        <div class="impact-lab">
-          <div class="eyebrow">СТОЛКНОВЕНИЕ / ВЫБРАННАЯ ЦЕЛЬ</div>
-          <p class="physics-note">Земля остаётся в списке выбора. Для другой цели можно выбрать созданный объект в кадре.</p>
-          <div class="field"><label for="impactPreset">Ударник</label><select id="impactPreset"><option value="small">Астероид · радиус 1 км</option><option value="large">Планетезималь · радиус 300 км</option><option value="planet">Планета · радиус Земли</option></select></div>
-          <div class="field"><label for="impactMass">Масса, кг</label><input id="impactMass" type="number" min="1e6" max="1e31" step="any" value="1.26e13"></div>
-          <div class="two"><div class="field"><label for="impactRadius">Радиус, км</label><input id="impactRadius" type="number" min="0.001" max="1e7" step="any" value="1"></div><div class="field"><label for="impactSpeed">Скорость, км/с</label><input id="impactSpeed" type="number" min="0.1" max="3000" step="any" value="20"></div></div>
-          <div class="field"><label for="impactOffset">Смещение b / (R₁ + R₂)</label><input id="impactOffset" type="range" min="0" max="1.1" step="0.01" value="0.72"><p class="physics-note">0 — лобовой · 0,72 — скользящий · &gt;1 — пролёт. <output id="impactOffsetValue">0,72</output></p></div>
-          <div class="check"><input id="impactAutoPause" type="checkbox" checked><label for="impactAutoPause">Пауза после расхождения</label></div>
-          <button id="impactLaunch" class="wide active">↗ Запустить ударник</button>
-          <p class="physics-note">Скорость относительно цели при запуске. Масса, радиус и угол влияют на последствия; энергия растёт как v².</p>
-        </div>
-        <div class="tool-grid" id="tools">
-          <button data-tool="select" class="active">Курсор <kbd>1</kbd></button
-          ><button data-tool="orbit">На орбиту <kbd>2</kbd></button
-          ><button data-tool="launch">Запуск <kbd>3</kbd></button
-          ><button data-tool="delete">Удалить <kbd>4</kbd></button>
-        </div>
-        <div id="launchControls" hidden>
-          <div class="field">
-            <label for="launchFrame">Система отсчёта запуска</label
-            ><select id="launchFrame">
-              <option value="world">Мировая · по стрелке</option>
-              <option value="relative" selected>Относительно Земли</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="launchGain">Скорость на 100 px стрелки, км/с</label
-            ><input
-              id="launchGain"
-              type="number"
-              min="0.001"
-              max="100000"
-              step="any"
-              value="10"
-            />
-          </div>
-          <div class="physics-note" id="launchFrameNote">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<link href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2711%27 fill=%27%23040507%27 stroke=%27%23d2c8b1%27/%3E%3Cellipse cx=%2716%27 cy=%2716%27 rx=%2715%27 ry=%274%27 transform=%27rotate(-25 16 16)%27 fill=%27none%27 stroke=%27%23d2c8b1%27/%3E%3C/svg%3E" rel="icon"/>
+<title>EarthSimulator — лаборатория Земли</title>
+<link href="./style.css?v=interface4" rel="stylesheet"/>
+</head>
+<body>
+<div id="webgl"></div>
+<canvas aria-label="Интерактивная трёхмерная гравитационная симуляция. Управление мышью и клавиатурой описано в справке." id="space"></canvas>
+<button hidden="" id="surfaceBack">← К планете</button>
+<div class="viewport-label">
+<div class="eyebrow">EARTH SIMULATOR / LIVE VIEW</div>
+<strong id="viewLabel">Перспектива · XY + Z</strong>
+</div>
+<div aria-hidden="true" class="nav-reticle" hidden="" id="navReticle"></div>
+<div class="scale">
+<span id="scaleText">1 а.е.</span>
+<div class="scale-line" id="scaleLine"></div>
+</div>
+<div class="field-caption" id="fieldCaption"></div>
+<div class="canvas-hint" id="hint">
+      W/S — зум · A/D, Q/E — орбита · Shift — быстрее · ПКМ — поворот
+    </div>
+<header class="app-header"><div class="brand"><div aria-hidden="true" class="brandmark"></div><div><strong>Earth<span>Simulator</span></strong><small>Орбитальная лаборатория</small></div></div><div class="live-state"><span class="dot" id="liveDot"></span><span id="liveText">СИМУЛЯЦИЯ</span></div><nav aria-label="Действия приложения" class="header-actions"><button id="saveBtn" title="Сохранить в браузере">Сохранить</button><button aria-haspopup="dialog" id="settingsBtn" type="button">Настройки</button><button id="helpBtn" title="Справка — H">? Справка</button></nav></header><aside aria-label="Воздействие на Землю" class="panel left impact-console" data-mode="impact"><div class="console-heading sr-only"><h1>Эксперимент</h1><p class="target-line"><strong id="uiTarget">Земля</strong></p></div><div aria-label="Режим эксперимента" class="experiment-tabs" role="group"><button aria-pressed="true" class="active" id="impactModeBtn">Столкновение</button><button aria-pressed="false" id="manualModeBtn">Создать объект</button></div><section aria-live="polite" class="impact-report" hidden="" id="impactReport">
+<div class="eyebrow">ОБЪЁМНЫЙ КОНТАКТ / МАТЕРИАЛ</div>
+<strong id="impactOutcome"></strong><p id="impactDetail"></p><p id="impactScale"></p><p class="physics-note" id="impactHint"></p><p class="physics-note" hidden="" id="meshStatus">Форма уточняется в фоне · физика не ждёт сетку.</p><button class="inspect-impact" hidden="" id="inspectImpact">↗ Рассмотреть вмятину</button>
+<button aria-label="Закрыть отчёт об ударе" onclick="document.getElementById('impactReport').hidden=true">×</button>
+</section><div class="impact-lab">
+<div class="field"><label class="sr-only" for="impactPreset">Размер ударника</label><select id="impactPreset"><option value="small">Астероид · радиус 1 км</option><option value="large">Планетезималь · радиус 300 км</option><option value="planet">Планета · радиус Земли</option></select></div>
+<div class="two"><div class="field"><label for="impactRadius">Радиус, км</label><input id="impactRadius" max="1e7" min="0.001" step="any" type="number" value="1"/></div><div class="field"><label for="impactSpeed">Скорость, км/с</label><input id="impactSpeed" max="3000" min="0.1" step="any" type="number" value="20"/></div></div>
+<div class="field"><label for="impactOffset">Смещение траектории</label><input id="impactOffset" max="1.1" min="0" step="0.01" type="range" value="0.72"/><p class="offset-readout">b / (R₁ + R₂) = <output id="impactOffsetValue">0,72</output></p></div>
+<button class="primary wide launch-primary" id="impactLaunch" title="Запустить ударник в выбранную цель">Запустить ударник</button><details class="fold" id="impactAdvanced"><summary>Масса и параметры запуска</summary><div class="fold-content"><div class="field"><label for="impactMass">Масса, кг</label><input id="impactMass" max="1e31" min="1e6" step="any" type="number" value="1.26e13"/></div><div class="check"><input checked="" id="impactAutoPause" type="checkbox"/><label for="impactAutoPause">Пауза после расхождения</label></div><p class="physics-note">Скорость задана относительно цели. 0 — лобовой удар, 1 — касание. Масса и скорость определяют энергию удара.</p></div></details></div><details class="fold manual-fold" id="manualTools"><summary>Создать объект вручную</summary><div class="fold-content"><div class="tool-grid" id="tools">
+<button class="active" data-tool="select">Курсор <kbd>1</kbd></button><button data-tool="orbit">На орбиту <kbd>2</kbd></button><button data-tool="launch">Запуск <kbd>3</kbd></button><button data-tool="delete">Удалить <kbd>4</kbd></button>
+</div><div hidden="" id="launchControls">
+<div class="field">
+<label for="launchFrame">Система отсчёта запуска</label><select id="launchFrame">
+<option value="world">Мировая · по стрелке</option>
+<option selected="" value="relative">Относительно Земли</option>
+</select>
+</div>
+<div class="field">
+<label for="launchGain">Скорость на 100 px стрелки, км/с</label><input id="launchGain" max="100000" min="0.001" step="any" type="number" value="10"/>
+</div>
+<div class="physics-note" id="launchFrameNote">
             К скорости запуска добавляется скорость Земли.
           </div>
-          <div class="check">
-            <input type="checkbox" id="launchPreview" checked /><label
-              for="launchPreview"
-              >Предпросмотр с гравитацией</label
-            >
-          </div>
-        </div>
-        <div class="field">
-          <label for="preset">Создаваемое тело</label
-          ><select id="preset">
-            <option value="earth">Каменистая планета</option>
-            <option value="gas">Газовый гигант</option>
-            <option value="moon">Спутник</option>
-            <option value="star">Звезда</option>
-            <option value="bh">Чёрная дыра</option>
-            <option value="asteroid" selected>Астероид</option>
-          </select>
-        </div>
-        <div class="two">
-          <div class="field">
-            <label for="spawnMass">Масса, M☉</label
-            ><input
-              id="spawnMass"
-              type="number"
-              value="6.32e-18"
-              min="1e-24"
-              max="1000000000"
-              step="any"
-            />
-          </div>
-          <div class="field">
-            <label for="spawnZ">Сдвиг Z от Земли, а.е.</label
-            ><input id="spawnZ" type="number" value="0" step="0.1" />
-          </div>
-        </div>
-        <p class="physics-note">Создание — в плоскости экрана у Земли. Контур показывает размер объекта; красный — пересечение. Для большой планеты отдалите камеру. Смещение Z задаёт сдвиг плоскости от Земли по мировой оси Z.</p>
-        <div class="row gap">
-          <button
-            class="wide"
-            id="beltBtn"
-            title="Добавить 24 астероида вокруг выбранного тела"
-          >
-            + Пояс</button
-          ><button class="wide" id="cometBtn">+ Комета</button>
-        </div>
-        <div class="physics-note" id="toolDescription">
+<div class="check">
+<input checked="" id="launchPreview" type="checkbox"/><label for="launchPreview">Предпросмотр с гравитацией</label>
+</div>
+</div><div class="field">
+<label for="preset">Создаваемое тело</label><select id="preset">
+<option value="earth">Каменистая планета</option>
+<option value="gas">Газовый гигант</option>
+<option value="moon">Спутник</option>
+<option value="star">Звезда</option>
+<option value="bh">Чёрная дыра</option>
+<option selected="" value="asteroid">Астероид</option>
+</select>
+</div><div class="two">
+<div class="field">
+<label for="spawnMass">Масса, M☉</label><input id="spawnMass" max="1000000000" min="1e-24" step="any" type="number" value="6.32e-18"/>
+</div>
+<div class="field">
+<label for="spawnZ">Сдвиг Z от Земли, а.е.</label><input id="spawnZ" step="0.1" type="number" value="0"/>
+</div>
+</div><p class="physics-note">Создание — в плоскости экрана у Земли. Контур показывает размер объекта; красный — пересечение. Для большой планеты отдалите камеру. Смещение Z задаёт сдвиг плоскости от Земли по мировой оси Z.</p><div class="row gap">
+<button class="wide" id="beltBtn" title="Добавить 24 астероида вокруг выбранного тела">
+            + Пояс</button><button class="wide" id="cometBtn">+ Комета</button>
+</div><div class="physics-note" id="toolDescription">
           Выберите тело в инспекторе. Камера остаётся на Земле.
-        </div>
-      </div>
-      <div class="section">
-        <div class="eyebrow">03 / Отображение</div>
-        <div class="two">
-          <button id="view3d" class="active">Псевдо‑3D</button
-          ><button id="viewTop">Вид сверху</button>
-        </div>
-        <div class="field">
-          <label for="lookSensitivity">Чувствительность ПКМ · <output id="lookSensitivityValue" for="lookSensitivity">100%</output></label>
-          <input id="lookSensitivity" type="range" min="0.2" max="3" step="0.05" value="1" />
-          <button id="resetLookSensitivity" class="wide" type="button">Сбросить чувствительность</button>
-          <p class="physics-note">20–300% · сохраняется в этом браузере. ПКМ работает вместе с клавишами. W/S — зум; A/D и Q/E — поворот вокруг Земли.</p>
-        </div>
-        <div class="check">
-          <input type="checkbox" id="trails" /><label for="trails"
-            >Следы движения</label
-          >
-        </div>
-        <div class="check">
-          <input type="checkbox" id="labels" checked /><label for="labels"
-            >Названия тел</label
-          >
-        </div>
-        <div class="check">
-          <input type="checkbox" id="orbits" /><label for="orbits"
-            >Мгновенные орбитальные эллипсы</label
-          >
-        </div>
-        <div class="check">
-          <input type="checkbox" id="prediction" /><label for="prediction"
-            >Прогноз выбранной орбиты</label
-          >
-        </div>
-        <div class="check">
-          <input type="checkbox" id="grid" /><label for="grid"
-            >Координатная плоскость</label
-          >
-        </div>
-        <div class="check">
-          <input type="checkbox" id="habitable" /><label for="habitable"
-            >Обитаемая зона звёзд</label
-          >
-        </div>
-        <div class="check">
-          <input type="checkbox" id="vectors" /><label for="vectors"
-            >Векторы скорости</label
-          >
-        </div>
-        <div class="row gap">
-          <button class="wide" id="fitBtn">Вся система <kbd>F</kbd></button
-          ><button id="clearTrails" title="Очистить следы">⌁</button>
-        </div>
-      </div>
-    </aside>
-    <button id="surfaceBack" hidden>← К планете</button>
-    <div class="viewport-label">
-      <div class="eyebrow">EARTH SIMULATOR / LIVE VIEW</div>
-      <strong id="viewLabel">Перспектива · XY + Z</strong>
-    </div>
-    <section class="navigation-hud" aria-label="Ориентация камеры">
-      <div class="navigation-row"><strong id="navMode">Слежение</strong><div class="navigation-actions"><button id="navTop" title="Вид сверху — T">Сверху <kbd>T</kbd></button><button id="navReturn" title="Вернуться к выбранному — R">К Земле <kbd>R</kbd></button></div></div>
-      <div class="navigation-readout"><span id="navCenter">В центре: Земля</span><span id="navHeading"></span></div>
-      <div id="navSelection"></div>
-    </section>
-    <div id="navReticle" class="nav-reticle" aria-hidden="true" hidden></div>
-    <aside class="panel right" aria-label="Инспектор и физика">
-      <div class="tabs">
-        <button class="active" data-tab="body">Объект</button
-        ><button data-tab="physics">Физика</button
-        ><button data-tab="system">Система</button>
-      </div>
-      <div class="tab-pane" id="tab-body">
-    <section id="impactReport" class="impact-report" aria-live="polite" hidden>
-      <div class="eyebrow">ОБЪЁМНЫЙ КОНТАКТ / МАТЕРИАЛ</div>
-      <strong id="impactOutcome"></strong><p id="impactDetail"></p><p id="impactScale"></p><p id="impactHint" class="physics-note"></p><p id="meshStatus" class="physics-note" hidden>Форма уточняется в фоне · физика не ждёт сетку.</p><button id="inspectImpact" class="inspect-impact" hidden>↗ Рассмотреть вмятину</button>
-      <button onclick="document.getElementById('impactReport').hidden=true" aria-label="Закрыть отчёт об ударе">×</button>
-    </section>
-
-        <div class="section">
-          <div class="row between">
-            <div class="body-kind">
-              <span class="swatch" id="bodySwatch"></span
-              ><span id="bodyKind">Каменистая планета</span>
-            </div>
-            <span class="subtle" id="bodyId">#3</span>
-          </div>
-          <h2 class="inspector-title gap" id="bodyName">Земля</h2>
-          <div class="metric-grid">
-            <div class="metric">
-              <small>Скорость</small><strong id="metricVel">—</strong>
-            </div>
-            <div class="metric">
-              <small>До центра масс</small><strong id="metricDist">—</strong>
-            </div>
-            <div class="metric">
-              <small>Ускорение</small><strong id="metricAcc">—</strong>
-            </div>
-            <div class="metric">
-              <small>Условная T равн.</small><strong id="metricTemp">—</strong>
-            </div>
-            <div class="metric">
-              <small>Часы у ЧД / ∞</small
-              ><strong
-                id="metricClock"
-                title="Гравитационное замедление часов статического наблюдателя в метрике Шварцшильда; диагностическая оценка, не изменение шага симуляции."
-                >—</strong
-              >
-            </div>
-            <div class="metric">
-              <small>Скорость убегания</small
-              ><strong id="metricEscape">—</strong>
-            </div>
-            <div class="metric">
-              <small>Полуось / эксц.</small><strong id="metricOrbit">—</strong>
-            </div>
-            <div class="metric">
-              <small>Период (2 тела)</small><strong id="metricPeriod">—</strong>
-            </div>
-          </div>
-          <div class="row gap">
-            <button id="followBtn" class="wide">◎ Земля закреплена</button
-            ><button id="focusBtn" class="wide">В центр</button>
-          </div>
-          <button id="editorToggle" class="editor-toggle">
-            Параметры и манёвры <span>↗</span>
+        </div></div></details></aside><aside aria-label="Телеметрия объекта и системы" class="panel right telemetry-console" id="tab-body"><div class="telemetry-heading"><h2 class="inspector-title gap" id="bodyName">Земля</h2><span class="eyebrow">Телеметрия</span></div><div class="object-readout">
+<div class="object-kind-row">
+<div class="body-kind">
+<span class="swatch" id="bodySwatch"></span><span id="bodyKind">Каменистая планета</span>
+</div>
+<span class="subtle" id="bodyId">#3</span>
+</div>
+<div class="metric-grid">
+<div class="metric">
+<small>Скорость</small><strong id="metricVel">—</strong>
+</div>
+<div class="metric">
+<small>До центра масс</small><strong id="metricDist">—</strong>
+</div>
+<div class="metric">
+<small>Ускорение</small><strong id="metricAcc">—</strong>
+</div>
+<div class="metric">
+<small>Условная T равн.</small><strong id="metricTemp">—</strong>
+</div>
+<div class="metric">
+<small>Часы у ЧД / ∞</small><strong id="metricClock" title="Гравитационное замедление часов статического наблюдателя в метрике Шварцшильда; диагностическая оценка, не изменение шага симуляции.">—</strong>
+</div>
+<div class="metric">
+<small>Скорость убегания</small><strong id="metricEscape">—</strong>
+</div>
+<div class="metric">
+<small>Полуось / эксц.</small><strong id="metricOrbit">—</strong>
+</div>
+<div class="metric">
+<small>Период (2 тела)</small><strong id="metricPeriod">—</strong>
+</div>
+</div>
+<button class="editor-toggle" id="editorToggle">Изменить объект</button>
+</div></aside><div aria-label="Приближение камеры" class="zoom-dock"><button aria-label="Отдалить" id="zoomOut">−</button><span id="cameraDistance">Камера</span><button aria-label="Приблизить" id="zoomIn">+</button><button class="return-earth" id="navReturn" title="Вернуться к выбранному — R">К Земле</button></div><footer class="bottom instrument-bar"><div class="transport-row">
+<div class="transport">
+<button aria-label="Приостановить" class="primary" id="pauseBtn" title="Пауза — Space">
+          Ⅱ</button><button aria-label="Один шаг" id="stepBtn" title="Один шаг — точка">
+          ▹|
+        </button>
+</div>
+<div class="timebox">
+<small>ВРЕМЯ СИМУЛЯЦИИ</small><strong id="simTime">0,00 лет</strong>
+</div>
+<div class="rate">
+<div class="row">
+<span>СКОРОСТЬ</span><span id="rateLabel">7,3 дн/с</span>
+</div>
+<input aria-label="Скорость времени" id="timeRate" max="2" min="-6" step="0.02" type="range" value="-1.7"/>
+</div>
+<div class="telemetry">
+<div class="bodies-telemetry"><strong id="nBodies">9 тел</strong><small>ТЕЛА · N²</small></div>
+<div class="energy-telemetry">
+<strong id="energyLabel">ΔE 0,00%</strong><small>СОХРАНЕНИЕ ЭНЕРГИИ</small>
+</div>
+<div class="camera-telemetry">
+<strong id="cameraLabel">Земля закреплена</strong><small>КАМЕРА</small>
+</div>
+</div>
+<div class="status">
+<span id="fps">60 FPS</span><br/><span id="simStatus">адаптивный шаг</span>
+</div>
+</div><div aria-label="Баланс и численная диагностика" class="system-strip"><div class="metric">
+<small>Общая масса</small><strong id="totalMass">—</strong>
+</div><div class="metric">
+<small>|Импульс|</small><strong id="totalMomentum">—</strong>
+</div><div class="metric">
+<small>Шагов / кадр</small><strong id="stepCount">—</strong>
+</div><span class="model-note">Ньютон · N тел · адаптивный шаг</span></div></footer><dialog aria-labelledby="settingsTitle" class="settings-dialog" id="settingsDialog"><div class="settings-heading"><div><span class="eyebrow">EarthSimulator</span><h2 id="settingsTitle">Настройки лаборатории</h2></div><button aria-label="Закрыть настройки" id="closeSettings" type="button">×</button></div><div aria-label="Разделы настроек" class="settings-tabs" role="tablist"><button aria-controls="settings-view" data-settings-tab="view" id="settings-view-tab" role="tab">Вид</button><button aria-controls="settings-physics" data-settings-tab="physics" id="settings-physics-tab" role="tab">Физика</button><button aria-controls="settings-system" data-settings-tab="system" id="settings-system-tab" role="tab">Система</button><button aria-controls="settings-object" data-settings-tab="object" id="settings-object-tab" role="tab">Объект</button></div><div class="settings-content"><section aria-labelledby="settings-view-tab" id="settings-view" role="tabpanel"><h3>Камера и управление</h3><div class="field">
+<label for="lookSensitivity">Чувствительность ПКМ · <output for="lookSensitivity" id="lookSensitivityValue">100%</output></label>
+<input id="lookSensitivity" max="3" min="0.2" step="0.05" type="range" value="1"/>
+<button class="wide" id="resetLookSensitivity" type="button">Сбросить к 100%</button>
+<p class="physics-note">20–300%. Сохраняется в этом браузере.</p>
+</div><div class="two">
+<button class="active" id="view3d">Объёмный вид</button><button id="viewTop">Сверху</button>
+</div><details class="fold"><summary>Свет и вращение</summary><div class="fold-content"><div class="planet-controls">
+<label for="rotationMode">Вращение вокруг оси</label>
+<select id="rotationMode"><option value="showcase">Наглядное · Земля за 40 с</option><option value="physical">По времени симуляции</option></select>
+<button aria-pressed="false" class="wide" id="spinToggle">Ⅱ Остановить вращение</button>
+<p id="spinNote">Вращение ускорено отдельно от орбит. Пауза внизу останавливает движение по орбите.</p>
+<label for="lightingMode">Освещение</label><select id="lightingMode"><option value="natural">Солнечный свет · день / ночь</option><option value="inspect">Рассмотреть · мягкая подсветка</option></select>
+<a class="asset-credit" href="https://www.solarsystemscope.com/textures/" rel="noopener" target="_blank">Карты: Solar System Scope · CC BY 4.0 ↗</a>
+</div><div class="planet-caption"><span id="planetKicker">03 / EARTH</span><strong id="planetSubtitle">Наш дом.</strong><small id="planetFacts">Каменистая планета · наклон оси 23,4°</small></div></div></details><details class="fold"><summary>Орбиты и вспомогательные слои</summary><div class="fold-content"><div class="section">
+<div class="check">
+<input id="trails" type="checkbox"/><label for="trails">Следы движения</label>
+</div>
+<div class="check">
+<input checked="" id="labels" type="checkbox"/><label for="labels">Названия тел</label>
+</div>
+<div class="check">
+<input id="orbits" type="checkbox"/><label for="orbits">Мгновенные орбитальные эллипсы</label>
+</div>
+<div class="check">
+<input id="prediction" type="checkbox"/><label for="prediction">Прогноз выбранной орбиты</label>
+</div>
+<div class="check">
+<input id="grid" type="checkbox"/><label for="grid">Координатная плоскость</label>
+</div>
+<div class="check">
+<input id="habitable" type="checkbox"/><label for="habitable">Обитаемая зона звёзд</label>
+</div>
+<div class="check">
+<input id="vectors" type="checkbox"/><label for="vectors">Векторы скорости</label>
+</div>
+<div class="row gap">
+<button class="wide" id="fitBtn">Вся система <kbd>F</kbd></button><button id="clearTrails" title="Очистить следы">⌁</button>
+</div>
+</div></div></details><details class="fold"><summary>Визуальный масштаб</summary><div class="fold-content"><div class="field">
+<label for="sizeScale">Визуальный масштаб тел: <span id="sizeValue">1×</span></label><input id="sizeScale" max="2.5" min="0.4" step="0.1" type="range" value="1"/>
+</div><p class="physics-note">Влияет только на изображение. Столкновения вычисляются по физическим радиусам.</p></div></details><button class="wide gap" id="cinemaBtn" title="Скрыть интерфейс — Tab">Скрыть интерфейс · Tab</button></section><section aria-labelledby="settings-physics-tab" hidden="" id="settings-physics" role="tabpanel"><div class="physics-settings" id="tab-physics">
+<div class="section">
+<div class="eyebrow">Численная модель</div>
+<strong>Ньютон · N тел · 3D</strong>
+<p class="physics-note">
+            Все тела влияют друг на друга. Kick–drift–kick (leapfrog), общий
+            адаптивный шаг. Единицы: а.е., солнечная масса, год. G = 4π².
+          </p>
+<div class="field">
+<label for="collision">Столкновения</label><select id="collision">
+<option value="merge">Неупругое слияние</option>
+<option value="bounce">Упругий отскок</option>
+<option selected="" value="fragment">Объёмное срезание вещества</option>
+<option value="none">Без столкновений</option>
+</select>
+</div>
+<div class="field">
+<label for="accuracy">Точность интегратора</label><select id="accuracy">
+<option value="0.015">Высокая · шаг ≤ 0,015 tдинамич.</option>
+<option selected="" value="0.035">
+                Стандартная · 0,035 tдинамич.
+              </option>
+<option value="0.07">Быстрая · 0,07 tдинамич.</option>
+</select>
+</div>
+<div class="field">
+<label for="softening">Смягчение ε, а.е.</label><input id="softening" max="1" min="1e-10" step="any" type="number" value="0.000001"/>
+</div>
+<div class="check">
+<input checked="" id="tides" type="checkbox"/><label for="tides">Приливное разрушение у чёрных дыр</label>
+</div>
+<div class="check">
+<input id="grRel" type="checkbox"/><label for="grRel">Приближение прецессии у ЧД</label>
+</div>
+<p class="physics-note">
+            Поправка ЧД: усиление центрального ускорения в 1 + 3h²/(r²c²).
+            Только для малых масс и r ≫ Rs; не полная ОТО. Поправка не сохраняет
+            ньютоновскую энергию.
+          </p>
+<button class="wide gap" id="zeroMomentum">
+            Перейти в систему центра масс
           </button>
-        </div>
-        <div class="section" id="editorSection" hidden>
-          <div class="eyebrow">Параметры объекта</div>
-          <div class="field">
-            <label for="editName">Имя</label
-            ><input type="text" id="editName" maxlength="36" />
-          </div>
-          <div class="two">
-            <div class="field">
-              <label for="editMass">Масса, M☉</label
-              ><input
-                id="editMass"
-                type="number"
-                min="1e-24"
-                max="1e9"
-                step="any"
-              />
-            </div>
-            <div class="field">
-              <label for="editRadius">Радиус, км</label
-              ><input
-                id="editRadius"
-                type="number"
-                min="0.000001"
-                max="1e11"
-                step="any"
-              />
-            </div>
-          </div>
-          <div class="two">
-            <div class="field">
-              <label for="editVx">Vx, км/с</label
-              ><input id="editVx" type="number" step="any" />
-            </div>
-            <div class="field">
-              <label for="editVy">Vy, км/с</label
-              ><input id="editVy" type="number" step="any" />
-            </div>
-          </div>
-          <div class="two">
-            <div class="field">
-              <label for="editVz">Vz, км/с</label
-              ><input id="editVz" type="number" step="any" />
-            </div>
-            <div class="field">
-              <label for="editColor">Цвет</label
-              ><input id="editColor" class="color-input" type="color" />
-            </div>
-          </div>
-          <button id="applyBtn" class="wide gap">Применить параметры</button>
-          <div class="row gap">
-            <button id="circularBtn" class="wide">Круговая орбита</button
-            ><button
-              id="removeBtn"
-              class="danger"
-              title="Удалить выбранный объект"
-            >
-              ×
-            </button>
-          </div>
-          <div class="field">
-            <label for="burn">Импульс Δv, км/с</label>
-            <div class="row">
-              <input id="burn" type="number" value="1" step="0.1" /><button
-                id="prograde"
-                title="Вдоль относительной скорости"
-              >
-                +V</button
-              ><button id="retrograde" title="Против относительной скорости">
-                −V
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="tab-pane" id="tab-physics" hidden>
-        <div class="section">
-          <div class="eyebrow">Геометрия поля</div>
-          <div class="check">
-            <input type="checkbox" id="curvature" /><label for="curvature"
-              >Показывать гравитационные колодцы</label
-            >
-          </div>
-          <div class="field">
-            <label for="fieldMode">Модель поверхности</label
-            ><select id="fieldMode">
-              <option value="potential">Потенциал (иллюстрация)</option>
-              <option value="schwarzschild">Шварцшильд · одна ЧД</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="fieldStrength"
-              >Усиление высоты: <span id="fieldValue">2×</span></label
-            ><input
-              type="range"
-              id="fieldStrength"
-              min="0.5"
-              max="4"
-              step="0.1"
-              value="2"
-            />
-          </div>
-          <div class="check">
-            <input type="checkbox" id="lensing" checked /><label for="lensing"
-              >Линзирование звёздного фона у ЧД</label
-            >
-          </div>
-          <p class="physics-note">
+</div>
+</div><details class="fold"><summary>Поле и специальные модели</summary><div class="fold-content"><div class="section">
+<div class="eyebrow">Геометрия поля</div>
+<div class="check">
+<input id="curvature" type="checkbox"/><label for="curvature">Показывать гравитационные колодцы</label>
+</div>
+<div class="field">
+<label for="fieldMode">Модель поверхности</label><select id="fieldMode">
+<option value="potential">Потенциал (иллюстрация)</option>
+<option value="schwarzschild">Шварцшильд · одна ЧД</option>
+</select>
+</div>
+<div class="field">
+<label for="fieldStrength">Усиление высоты: <span id="fieldValue">2×</span></label><input id="fieldStrength" max="4" min="0.5" step="0.1" type="range" value="2"/>
+</div>
+<div class="check">
+<input checked="" id="lensing" type="checkbox"/><label for="lensing">Линзирование звёздного фона у ЧД</label>
+</div>
+<p class="physics-note">
             Карта потенциала — визуально сглаженный рельеф, не буквальная ткань
             пространства. Срез ЧД: поверхность Фламма z = 2√(Rs(r−Rs)); высота
             усилена. Линза использует уравнение тонкой линзы с условным углом
             Эйнштейна. Движение тел: Ньютон, с опциональной поправкой прецессии
             у ЧД. По умолчанию она выключена.
           </p>
-        </div>
-        <div class="section">
-          <div class="eyebrow">Численная модель</div>
-          <strong>Ньютон · N тел · 3D</strong>
-          <p class="physics-note">
-            Все тела влияют друг на друга. Kick–drift–kick (leapfrog), общий
-            адаптивный шаг. Единицы: а.е., солнечная масса, год. G = 4π².
-          </p>
-          <div class="field">
-            <label for="collision">Столкновения</label
-            ><select id="collision">
-              <option value="merge">Неупругое слияние</option>
-              <option value="bounce">Упругий отскок</option>
-              <option value="fragment" selected>Объёмное срезание вещества</option>
-              <option value="none">Без столкновений</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="accuracy">Точность интегратора</label
-            ><select id="accuracy">
-              <option value="0.015">Высокая · шаг ≤ 0,015 tдинамич.</option>
-              <option value="0.035" selected>
-                Стандартная · 0,035 tдинамич.
-              </option>
-              <option value="0.07">Быстрая · 0,07 tдинамич.</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="softening">Смягчение ε, а.е.</label
-            ><input
-              id="softening"
-              type="number"
-              value="0.000001"
-              min="1e-10"
-              max="1"
-              step="any"
-            />
-          </div>
-          <div class="check">
-            <input id="tides" type="checkbox" checked /><label for="tides"
-              >Приливное разрушение у чёрных дыр</label
-            >
-          </div>
-          <div class="check">
-            <input id="grRel" type="checkbox" /><label for="grRel"
-              >Приближение прецессии у ЧД</label
-            >
-          </div>
-          <p class="physics-note">
-            Поправка ЧД: усиление центрального ускорения в 1 + 3h²/(r²c²).
-            Только для малых масс и r ≫ Rs; не полная ОТО. Поправка не сохраняет
-            ньютоновскую энергию.
-          </p>
-          <div class="field">
-            <label for="sizeScale"
-              >Визуальный масштаб тел: <span id="sizeValue">1×</span></label
-            ><input
-              id="sizeScale"
-              type="range"
-              min="0.4"
-              max="2.5"
-              value="1"
-              step="0.1"
-            />
-          </div>
-          <p class="physics-note">
-            Размеры на экране увеличены. Контакты вычисляются по физическим
-            радиусам; чёрные дыры поглощают на радиусе Шварцшильда. Визуальный
-            диск не является границей столкновения.
-          </p>
-          <button id="zeroMomentum" class="wide gap">
-            Перейти в систему центра масс
-          </button>
-        </div>
-      </div>
-      <div class="tab-pane" id="tab-system" hidden>
-        <div class="section">
-          <div class="eyebrow">Баланс системы</div>
-          <div class="metric-grid">
-            <div class="metric">
-              <small>Общая масса</small><strong id="totalMass">—</strong>
-            </div>
-            <div class="metric">
-              <small>|Импульс|</small><strong id="totalMomentum">—</strong>
-            </div>
-            <div class="metric">
-              <small>ΔE / |E₀|</small><strong id="energyDrift">—</strong>
-            </div>
-            <div class="metric">
-              <small>Шагов / кадр</small><strong id="stepCount">—</strong>
-            </div>
-          </div>
-          <p class="physics-note">
+</div></div></details></section><section aria-labelledby="settings-system-tab" hidden="" id="settings-system" role="tabpanel"><div id="tab-system"><h3>Сохранение и обмен</h3><div class="file-actions"><button class="wide" id="restoreBtn">Загрузить сохранение</button><button id="exportBtn">Экспорт</button><button id="importBtn">Импорт</button></div><div class="metric">
+<small>ΔE / |E₀|</small><strong id="energyDrift">—</strong>
+</div><p class="physics-note">
             Энергия учитывает смягчённый потенциал. База ΔE сбрасывается после
             создания, удаления, редактирования и столкновений. При ограничении
             CPU время замедляется, шаг не увеличивается.
-          </p>
-          <div class="row gap">
-            <button id="restoreBtn" class="wide">Загрузить сохранение</button>
-          </div>
-        </div>
-        <div class="section">
-          <div class="row between">
-            <div class="eyebrow">Тела</div>
-            <span id="bodyCount" class="subtle">0 / 180</span>
-          </div>
-          <div class="body-list" id="bodyList"></div>
-        </div>
-        <div class="section">
-          <div class="eyebrow">Журнал событий</div>
-          <div id="events" class="event-list"></div>
-        </div>
-        <div class="section">
-          <button id="clearBtn" class="danger wide">Очистить вселенную</button>
-        </div>
-      </div>
-    </aside>
-    <div class="scale">
-      <span id="scaleText">1 а.е.</span>
-      <div class="scale-line" id="scaleLine"></div>
-    </div>
-    <div id="fieldCaption" class="field-caption"></div>
-    <div class="zoom-dock" aria-label="Приближение камеры"><button id="zoomOut" aria-label="Отдалить">−</button><span id="cameraDistance">Камера</span><button id="zoomIn" aria-label="Приблизить">+</button></div>
-    <div class="planet-caption"><span id="planetKicker">03 / EARTH</span><strong id="planetSubtitle">Наш дом.</strong><small id="planetFacts">Каменистая планета · наклон оси 23,4°</small></div>
-    <div class="canvas-hint" id="hint">
-      W/S — зум · A/D, Q/E — орбита · Shift — быстрее · ПКМ — поворот
-    </div>
-    <footer class="bottom">
-      <div class="transport">
-        <button
-          id="pauseBtn"
-          class="primary"
-          title="Пауза — Space"
-          aria-label="Приостановить"
-        >
-          Ⅱ</button
-        ><button id="stepBtn" title="Один шаг — точка" aria-label="Один шаг">
-          ▹|
-        </button>
-      </div>
-      <div class="timebox">
-        <small>ВРЕМЯ СИМУЛЯЦИИ</small><strong id="simTime">0,00 лет</strong>
-      </div>
-      <div class="divider"></div>
-      <div class="rate">
-        <div class="row">
-          <span>СКОРОСТЬ</span><span id="rateLabel">7,3 дн/с</span>
-        </div>
-        <input
-          id="timeRate"
-          aria-label="Скорость времени"
-          type="range"
-          min="-6"
-          max="2"
-          value="-1.7"
-          step="0.02"
-        />
-      </div>
-      <div class="divider"></div>
-      <div class="telemetry">
-        <div><strong id="nBodies">9 тел</strong><small>ПРЯМОЕ N²</small></div>
-        <div>
-          <strong id="energyLabel">ΔE 0,00%</strong
-          ><small>СОХРАНЕНИЕ ЭНЕРГИИ</small>
-        </div>
-        <div>
-          <strong id="cameraLabel">Земля закреплена</strong><small>КАМЕРА</small>
-        </div>
-      </div>
-      <div class="status">
-        <span id="fps">60 FPS</span><br /><span id="simStatus"
-          >адаптивный шаг</span
-        >
-      </div>
-    </footer>
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <div class="modal-backdrop" id="help" hidden>
-      <section
-        class="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="helpTitle"
-      >
-        <div class="row between">
-          <div>
-            <div class="eyebrow">EARTH SIMULATOR / РУКОВОДСТВО</div>
-            <h2 id="helpTitle">Космос без заданного исхода.</h2>
-          </div>
-          <button id="closeHelp">Закрыть ×</button>
-        </div>
-        <p>
-          Создавайте системы, меняйте скорости, наблюдайте резонансы, рассеяние
-          и падения. Песочница использует Three.js/WebGL; библиотека и материалы
-          загружаются из этого репозитория, без внешнего CDN. Рассчитана на
-          настольный браузер.
+          </p><div class="section">
+<div class="row between">
+<div class="eyebrow">Тела</div>
+<span class="subtle" id="bodyCount">0 / 180</span>
+</div>
+<div class="body-list" hidden="" id="bodyList"></div>
+</div><div class="section">
+<div class="eyebrow">Журнал событий</div>
+<div class="event-list" id="events"></div>
+</div><h3>Центр наблюдения</h3><nav aria-label="Выбор планеты" class="planet-navigator" id="planetNavigator"></nav></div><details class="fold"><summary>Сброс и удаление</summary><div class="fold-content"><button class="wide" id="resetBtn" title="Восстановить Солнечную систему">Начать эксперимент заново</button><div class="section">
+<button class="danger wide" id="clearBtn">Очистить вселенную</button>
+</div></div></details></section><section aria-labelledby="settings-object-tab" hidden="" id="settings-object" role="tabpanel"><div class="section" id="editorSection">
+<div class="eyebrow">Параметры объекта</div>
+<div class="field">
+<label for="editName">Имя</label><input id="editName" maxlength="36" type="text"/>
+</div>
+<div class="two">
+<div class="field">
+<label for="editMass">Масса, M☉</label><input id="editMass" max="1e9" min="1e-24" step="any" type="number"/>
+</div>
+<div class="field">
+<label for="editRadius">Радиус, км</label><input id="editRadius" max="1e11" min="0.000001" step="any" type="number"/>
+</div>
+</div>
+<div class="two">
+<div class="field">
+<label for="editVx">Vx, км/с</label><input id="editVx" step="any" type="number"/>
+</div>
+<div class="field">
+<label for="editVy">Vy, км/с</label><input id="editVy" step="any" type="number"/>
+</div>
+</div>
+<div class="two">
+<div class="field">
+<label for="editVz">Vz, км/с</label><input id="editVz" step="any" type="number"/>
+</div>
+<div class="field">
+<label for="editColor">Цвет</label><input class="color-input" id="editColor" type="color"/>
+</div>
+</div>
+<button class="wide gap" id="applyBtn">Применить параметры</button>
+<div class="row gap">
+<button class="wide" id="circularBtn">Круговая орбита</button><button class="danger" id="removeBtn" title="Удалить выбранный объект">
+              ×
+            </button>
+</div>
+<div class="field">
+<label for="burn">Импульс Δv, км/с</label>
+<div class="row">
+<input id="burn" step="0.1" type="number" value="1"/><button id="prograde" title="Вдоль относительной скорости">
+                +V</button><button id="retrograde" title="Против относительной скорости">
+                −V
+              </button>
+</div>
+</div>
+</div></section></div></dialog><div hidden="" id="legacyControls"><button class="wide" id="followBtn">◎ Земля закреплена</button><button class="wide" id="focusBtn">В центр</button><button id="overviewBtn" title="Вписать систему">Обзор</button><button id="planetViewBtn" title="Вернуться к Земле">
+          К Земле</button><button class="active" id="fieldBtn" title="Геометрия поля — G">
+          Поле</button><button id="navTop" title="Вид сверху — T">Сверху <kbd>T</kbd></button><section aria-label="Ориентация камеры" class="navigation-hud">
+<div class="navigation-row"><strong id="navMode">Слежение</strong><div class="navigation-actions"></div></div>
+<div class="navigation-readout"><span id="navCenter">В центре: Земля</span><span id="navHeading"></span></div>
+<div id="navSelection"></div>
+</section><div class="scenario-title" id="scenarioTitle">Земля</div><div class="scenario-desc" id="scenarioDesc"></div></div><div aria-live="polite" class="toast" id="toast" role="status"></div>
+<div class="modal-backdrop" hidden="" id="help">
+<section aria-labelledby="helpTitle" aria-modal="true" class="modal" role="dialog">
+<div class="row between">
+<div>
+<div class="eyebrow">EARTH SIMULATOR / РУКОВОДСТВО</div>
+<h2 id="helpTitle">Управление лабораторией</h2>
+</div>
+<button id="closeHelp">Закрыть ×</button>
+</div>
+<p>
+          Запускайте объекты к Земле и наблюдайте траектории, столкновения и деформацию поверхности. Камера остаётся у Земли; остальные планеты продолжают участвовать в гравитации. Three.js, текстуры и вычислительные модули загружаются из этого репозитория без внешнего CDN.
         </p>
-        <div class="help-grid">
-          <div>
-            <h3>Управление</h3>
-            <div class="keyline"><span>Зум / горизонтальный поворот</span><kbd>W S / A D</kbd></div>
-            <div class="keyline"><span>Поворот по вертикали · быстрее</span><kbd>Q / E · Shift</kbd></div>
-            <div class="keyline"><span>Повернуть взгляд</span><kbd>Стрелки / ПКМ</kbd></div>
-            <div class="keyline"><span>К Земле / сверху / вся система</span><kbd>R / T / Home</kbd></div>
-            <p>Камера закреплена на Земле и следует за её физическим движением. Выбор другой планеты меняет только инспектор. ПКМ вращает камеру вокруг Земли; W/S приближают и отдаляют, A/D поворачивают по горизонтали, Q/E — по вертикали. Shift ускоряет клавиши. ПКМ и клавиши работают одновременно, включая русскую раскладку; ввод в поля не управляет камерой. Чувствительность ПКМ настраивается во вкладке «Вид» (20–300%). R и «К Земле» возвращают крупный план Земли, F вписывает всю систему с Землёй в центре. Осмотр кратеров Земли сохраняет локальную привязку к ней. Если Земля удалена или уничтожена, камера удерживает последнюю точку, а не переключается на другое тело. Углы и оси — мировые XY/Z, не географический север.</p>
-            <div class="keyline">
-              <span>Выбор / поворот вокруг Земли</span
-              ><kbd>ЛКМ / перетаскивание</kbd>
-            </div>
-            <div class="keyline">
-              <span>Поворот камеры</span><kbd>ПКМ + движение</kbd>
-            </div>
-            <div class="keyline">
-              <span>Плавное приближение</span><kbd>Колесо</kbd>
-            </div>
-            <div class="keyline">
-              <span>Пауза / один шаг</span><kbd>Space / .</kbd>
-            </div>
-            <div class="keyline">
-              <span>Курсор / орбита / запуск / удалить</span
-              ><kbd>1 / 2 / 3 / 4</kbd>
-            </div>
-            <div class="keyline">
-              <span>Вписать систему / к Земле</span><kbd>F / C</kbd>
-            </div>
-            <div class="keyline">
-              <span>Удалить выбранное</span><kbd>Delete</kbd>
-            </div>
-            <div class="keyline">
-              <span>Кино / снимок PNG / справка</span><kbd>Tab / P / H</kbd>
-            </div>
-            <div class="keyline">
-              <span>Отменить создание / закрыть</span><kbd>Esc</kbd>
-            </div>
-            <h3>Планеты и вращение</h3><p>Слева выберите планету — камера приблизит её с учётом размера и колец. Двойной щелчок по телу также включает крупный план. ПКМ позволяет осмотреть дневную и ночную стороны; приближение останавливается снаружи поверхности.</p><p>По умолчанию осевое вращение наглядно ускорено отдельно от движения по орбитам: Земля делает оборот за 40 секунд. Пауза внизу останавливает орбиты, а кнопка «Остановить вращение» — осевой поворот. Режим «По времени симуляции» связывает вращение с физическими периодами и общей паузой. Ночь остаётся со стороны, противоположной Солнцу, пока материки вращаются через неё. Подсветку тёмной стороны можно включить в меню освещения.</p><h3>Создание и манёвры</h3>
-            <p>
-              <b>На орбиту:</b> выберите центральное тело, затем щёлкните по
+<div class="help-grid">
+<div>
+<h3>Управление</h3>
+<div class="keyline"><span>Зум / горизонтальный поворот</span><kbd>W S / A D</kbd></div>
+<div class="keyline"><span>Поворот по вертикали · быстрее</span><kbd>Q / E · Shift</kbd></div>
+<div class="keyline"><span>Повернуть взгляд</span><kbd>Стрелки / ПКМ</kbd></div>
+<div class="keyline"><span>К Земле / сверху / вся система</span><kbd>R / T / Home</kbd></div>
+<p>Камера закреплена на Земле и следует за её физическим движением. Выбор другой планеты меняет только инспектор. ПКМ вращает камеру вокруг Земли; W/S приближают и отдаляют, A/D поворачивают по горизонтали, Q/E — по вертикали. Shift ускоряет клавиши. ПКМ и клавиши работают одновременно, включая русскую раскладку; ввод в поля не управляет камерой. Чувствительность ПКМ настраивается во вкладке «Вид» (20–300%). R и «К Земле» возвращают крупный план Земли, F вписывает всю систему с Землёй в центре. Осмотр кратеров Земли сохраняет локальную привязку к ней. Если Земля удалена или уничтожена, камера удерживает последнюю точку, а не переключается на другое тело. Углы и оси — мировые XY/Z, не географический север.</p>
+<div class="keyline">
+<span>Выбор / поворот вокруг Земли</span><kbd>ЛКМ / перетаскивание</kbd>
+</div>
+<div class="keyline">
+<span>Поворот камеры</span><kbd>ПКМ + движение</kbd>
+</div>
+<div class="keyline">
+<span>Плавное приближение</span><kbd>Колесо</kbd>
+</div>
+<div class="keyline">
+<span>Пауза / один шаг</span><kbd>Space / .</kbd>
+</div>
+<div class="keyline">
+<span>Курсор / орбита / запуск / удалить</span><kbd>1 / 2 / 3 / 4</kbd>
+</div>
+<div class="keyline">
+<span>Вписать систему / к Земле</span><kbd>F / C</kbd>
+</div>
+<div class="keyline">
+<span>Удалить выбранное</span><kbd>Delete</kbd>
+</div>
+<div class="keyline">
+<span>Кино / снимок PNG / справка</span><kbd>Tab / P / H</kbd>
+</div>
+<div class="keyline">
+<span>Отменить создание / закрыть</span><kbd>Esc</kbd>
+</div>
+<h3>Планеты и вращение</h3><p>Слева выберите планету — камера приблизит её с учётом размера и колец. Двойной щелчок по телу также включает крупный план. ПКМ позволяет осмотреть дневную и ночную стороны; приближение останавливается снаружи поверхности.</p><p>По умолчанию осевое вращение наглядно ускорено отдельно от движения по орбитам: Земля делает оборот за 40 секунд. Пауза внизу останавливает орбиты, а кнопка «Остановить вращение» — осевой поворот. Режим «По времени симуляции» связывает вращение с физическими периодами и общей паузой. Ночь остаётся со стороны, противоположной Солнцу, пока материки вращаются через неё. Подсветку тёмной стороны можно включить в меню освещения.</p><h3>Создание и манёвры</h3>
+<p>
+<b>На орбиту:</b> выберите центральное тело, затем щёлкните по
               пустому месту. Скорость рассчитывается в плоскости XY как
               √(G(M+m)/r). Высота Z задаёт наклон орбиты. Центр закреплён до
               явного выбора другого тела, поэтому следующие планеты не начинают
@@ -643,8 +373,8 @@
               получают взаимную поправку скоростей; орбита остаётся приближённой
               в системе N тел.
             </p>
-            <p>
-              <b>Запуск:</b> зажмите ЛКМ в точке появления и вытяните стрелку в
+<p>
+<b>Запуск:</b> зажмите ЛКМ в точке появления и вытяните стрелку в
               направлении скорости. Длина стрелки задаёт скорость; её наконечник
               — направление начального движения. По умолчанию это абсолютная
               скорость в мировой системе: выбранное тело ничего не добавляет.
@@ -656,25 +386,25 @@
               перед контактом; это ограниченный по времени прогноз, не обещание
               прямолинейного полёта.
             </p>
-            <p>
-              <b>+V / −V:</b> мгновенный импульс вдоль скорости относительно
+<p>
+<b>+V / −V:</b> мгновенный импульс вдоль скорости относительно
               доминирующего по ускорению тела. Это внешнее воздействие, не
               модель ракетного топлива.
             </p>
-          </div>
-          <div>
-            <h3>Что здесь действительно моделируется</h3>
-            <ul>
-              <li>
+</div>
+<div>
+<h3>Что здесь действительно моделируется</h3>
+<ul>
+<li>
                 Полная попарная ньютоновская гравитация в трёх координатах;
                 обратное влияние массы включено.
               </li>
-              <li>
+<li>
                 Leapfrog с ограничением шага по времени сближения и
                 динамическому времени. Переменный шаг не строго симплектичен:
                 следите за ΔE.
               </li>
-              <li>
+<li>
                 Контакты физических сфер: слияние сохраняет массу и импульс;
                 упругий отскок — также кинетическую энергию (в точке контакта).
                 В режиме «Объёмное срезание» пересечение удаляет вещество локально,
@@ -692,17 +422,17 @@
                 Звёзды всегда поглощают ударник как горячая плазма, даже в режиме отскока
                 или без обычных столкновений; температура звезды показана в отчёте.
               </li>
-              <li>
+<li>
                 Радиус ЧД Rs = 2GM/c². Планета может распасться на расстоянии
                 приливного разрыва ≈ R(2M/m)⅓. Осколки не разрушаются повторно.
               </li>
-              <li>
+<li>
                 Температура — оценка чёрного тела с альбедо 0,3 от всех звёзд.
                 Обитаемая зона 0,95–1,67 √L а.е. Это не климатическая модель.
               </li>
-            </ul>
-            <h3>Искривление и часы</h3>
-            <p>
+</ul>
+<h3>Искривление и часы</h3>
+<p>
               G включает геометрию поля. В обычной системе это иллюстрация
               сглаженного ньютоновского потенциала с условной глубиной; камера и
               усиление меняют рисунок, но не силы. Для одной невращающейся ЧД
@@ -714,8 +444,8 @@
               модель тонкой линзы с условным углом Эйнштейна, а не
               релятивистское трассирование лучей.
             </p>
-            <h3>Честные ограничения</h3>
-            <p>
+<h3>Честные ограничения</h3>
+<p>
               Нет гидродинамики, ядерной эволюции звёзд, гравитационных волн и
               полного релятивистского трассирования лучей. Аккреционные диски и
               световые кольца — визуализация, а не вещество. Тонкие эллипсы —
@@ -724,31 +454,29 @@
               без столкновений, на ограниченный горизонт. Орбитальные элементы —
               мгновенное двухтельное приближение.
             </p>
-            <p>
+<p>
               Масштабы тел художественно увеличены для читаемости. Ограничение —
               180 тел; при нехватке вычислений симуляция замедляет время, не
               жертвуя шагом. Сохранение браузера доступно через кнопки; для
               переноса используйте JSON. Перезапуск восстанавливает Солнечную систему. Наглядное вращение ускорено отдельно от времени орбит; выберите «По времени симуляции» для физических периодов. Масштаб освещения нормализован для просмотра, не для измерения яркости.
             </p>
-          </div>
-        </div>
-      </section>
-    </div>
-    <input type="file" id="fileInput" accept="application/json,.json" hidden />
-    <div id="loading">
-      <span class="load-orbit"></span><strong>EARTH SIMULATOR</strong
-      ><span>Подготовка материалов планет…</span
-      ><small id="loadStatus">WebGL / Three.js</small>
-    </div>
-    <div class="desktop-only">
-      <div>
-        <strong>Этому космосу нужен простор.</strong>Откройте сайт на компьютере
+</div>
+</div>
+</section>
+</div>
+<input accept="application/json,.json" hidden="" id="fileInput" type="file"/>
+<div id="loading">
+<span class="load-orbit"></span><strong>EARTH SIMULATOR</strong><span>Подготовка материалов планет…</span><small id="loadStatus">WebGL / Three.js</small>
+</div>
+<div class="desktop-only">
+<div>
+<strong>Этому космосу нужен простор.</strong>Откройте сайт на компьютере
         в окне шириной от 1000 px. Мобильная версия намеренно не предусмотрена.
       </div>
-    </div>
-    <script src="./impact-physics.js?v=energy1"></script>
-    <script src="./solid-physics.js?v=energy1"></script>
-    <script src="./engine.js?v=earth-realism3"></script>
-    <script type="module" src="./scene.js?v=earth-realism3"></script>
-  </body>
+</div>
+<script src="./impact-physics.js?v=energy1"></script>
+<script src="./solid-physics.js?v=energy1"></script>
+<script src="./engine.js?v=interface4"></script><script src="./ui.js?v=interface4"></script>
+<script src="./scene.js?v=interface4" type="module"></script>
+</body>
 </html>

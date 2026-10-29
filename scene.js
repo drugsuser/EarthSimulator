@@ -204,7 +204,7 @@ window.FoundryRenderer={sculpt,pendingSolids,meshStats,prepareSolid,impact,local
  updatePlanetUI(bodies,now);
  let spacing=10**Math.floor(Math.log10(100/view.scale))*SCALE;grid.scale.setScalar(spacing);grid.visible=$('grid').checked;updateField(bodies);renderer.render(scene,camera)}};
 addEventListener('resize',()=>renderer.setSize(innerWidth,innerHeight));
-const sections=[...document.querySelector('.left').children].filter(n=>n.classList.contains('section'));sections.forEach((s,i)=>s.dataset.pane=['scenes','create','display'][i]);window.showLeft=name=>{sections.forEach(s=>s.classList.toggle('pane-active',s.dataset.pane===name));document.querySelectorAll('[data-left]').forEach(b=>b.classList.toggle('active',b.dataset.left===name))};document.querySelectorAll('[data-left]').forEach(b=>b.onclick=()=>showLeft(b.dataset.left));showLeft('scenes');$('editorToggle').onclick=()=>{$('editorSection').hidden=!$('editorSection').hidden};$('overviewBtn').onclick=()=>api.fit();$('planetViewBtn').onclick=()=>api.focusShowcase();
+window.showLeft=name=>window.EarthUI?.showLeft(name);$('editorToggle').onclick=()=>window.EarthUI?.open('object');$('overviewBtn').onclick=()=>api.fit();$('planetViewBtn').onclick=()=>api.focusShowcase();
 $('zoomIn').onclick=()=>api.zoomBy(1.65);$('zoomOut').onclick=()=>api.zoomBy(1/1.65);
 $('spinToggle').onclick=()=>{spinPaused=!spinPaused;$('spinToggle').textContent=spinPaused?'▶ Продолжить вращение':'Ⅱ Остановить вращение';$('spinToggle').setAttribute('aria-pressed',String(spinPaused));};
 if(spinPaused){$('spinToggle').textContent='▶ Продолжить вращение';$('spinToggle').setAttribute('aria-pressed','true');}
