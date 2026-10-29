@@ -50,7 +50,7 @@
       </div>
       <div class="section">
         <div class="row between">
-          <div class="eyebrow">01 / Солнечная система</div>
+          <div class="eyebrow">01 / Земля</div>
           <button
             id="resetBtn"
             style="min-height: 25px; padding: 2px 7px; font-size: 11px"
@@ -59,7 +59,7 @@
             ↻
           </button>
         </div>
-        <div class="scenario-title" id="scenarioTitle">Солнечная система</div>
+        <div class="scenario-title" id="scenarioTitle">Земля</div>
         <div class="scenario-desc" id="scenarioDesc"></div>
         <nav id="planetNavigator" class="planet-navigator" aria-label="Выбор планеты"></nav>
         <div class="planet-controls">
@@ -75,7 +75,7 @@
         <div class="eyebrow">02 / Вмешательство</div>
         <div class="impact-lab">
           <div class="eyebrow">СТОЛКНОВЕНИЕ / ВЫБРАННАЯ ЦЕЛЬ</div>
-          <p class="physics-note">Выберите цель в списке планет. Масса и размеры цели учитываются автоматически.</p>
+          <p class="physics-note">Земля остаётся в списке выбора. Для другой цели можно выбрать созданный объект в кадре.</p>
           <div class="field"><label for="impactPreset">Ударник</label><select id="impactPreset"><option value="small">Астероид · радиус 1 км</option><option value="large">Планетезималь · радиус 300 км</option><option value="planet">Планета · радиус Земли</option></select></div>
           <div class="field"><label for="impactMass">Масса, кг</label><input id="impactMass" type="number" min="1e6" max="1e31" step="any" value="1.26e13"></div>
           <div class="two"><div class="field"><label for="impactRadius">Радиус, км</label><input id="impactRadius" type="number" min="0.001" max="1e7" step="any" value="1"></div><div class="field"><label for="impactSpeed">Скорость, км/с</label><input id="impactSpeed" type="number" min="0.1" max="3000" step="any" value="20"></div></div>
@@ -95,7 +95,7 @@
             <label for="launchFrame">Система отсчёта запуска</label
             ><select id="launchFrame">
               <option value="world">Мировая · по стрелке</option>
-              <option value="relative">Относительно тела</option>
+              <option value="relative" selected>Относительно Земли</option>
             </select>
           </div>
           <div class="field">
@@ -110,7 +110,7 @@
             />
           </div>
           <div class="physics-note" id="launchFrameNote">
-            Скорость выбранного тела не наследуется.
+            К скорости запуска добавляется скорость Земли.
           </div>
           <div class="check">
             <input type="checkbox" id="launchPreview" checked /><label
@@ -127,7 +127,7 @@
             <option value="moon">Спутник</option>
             <option value="star">Звезда</option>
             <option value="bh">Чёрная дыра</option>
-            <option value="asteroid">Астероид</option>
+            <option value="asteroid" selected>Астероид</option>
           </select>
         </div>
         <div class="two">
@@ -136,17 +136,18 @@
             ><input
               id="spawnMass"
               type="number"
-              value="3.003e-6"
+              value="6.32e-18"
               min="1e-24"
               max="1000000000"
               step="any"
             />
           </div>
           <div class="field">
-            <label for="spawnZ">Высота Z, а.е.</label
+            <label for="spawnZ">Сдвиг Z от Земли, а.е.</label
             ><input id="spawnZ" type="number" value="0" step="0.1" />
           </div>
         </div>
+        <p class="physics-note">Создание — в плоскости экрана у Земли. Контур показывает размер объекта; красный — пересечение. Для большой планеты отдалите камеру. Смещение Z задаёт сдвиг плоскости от Земли по мировой оси Z.</p>
         <div class="row gap">
           <button
             class="wide"
@@ -747,7 +748,7 @@
     </div>
     <script src="./impact-physics.js?v=energy1"></script>
     <script src="./solid-physics.js?v=energy1"></script>
-    <script src="./engine.js?v=earth1"></script>
-    <script type="module" src="./scene.js?v=earth1"></script>
+    <script src="./engine.js?v=spawn2"></script>
+    <script type="module" src="./scene.js?v=spawn2"></script>
   </body>
 </html>

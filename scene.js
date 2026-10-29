@@ -201,8 +201,9 @@ window.FoundryRendererInfo={three:THREE.REVISION,renderer:'WebGL',objects,planet
 
 let navStamp='',uiStamp='',uiTime=0;
 function updatePlanetUI(bodies,now){
- const stamp=bodies.map(b=>b.id+':'+b.name).join('|');
- if(stamp!==navStamp){navStamp=stamp;$('planetNavigator').replaceChildren(...bodies.map((b,i)=>{
+ const planets=bodies.filter(b=>b.planet==='earth'&&b.phase!=='dust');
+ const stamp=planets.map(b=>b.id+':'+b.name).join('|');
+ if(stamp!==navStamp){navStamp=stamp;$('planetNavigator').replaceChildren(...planets.map((b,i)=>{
   const k=keyFor(b),d=planetData[k],bt=document.createElement('button');bt.className='planet-nav';bt.dataset.planetId=b.id;bt.setAttribute('aria-label','Выбрать в инспекторе: '+b.name);
   const n=document.createElement('span');n.className='planet-order';n.textContent=String(i).padStart(2,'0');const orb=document.createElement('span');orb.className='planet-thumb';orb.style.backgroundColor=d?.color||b.color;
   const sources={earth:earthDay,venus:'./assets/venus_atmosphere.jpg'};if(k)orb.style.backgroundImage=`url("${sources[k]||'./assets/'+k+'.jpg'}")`;

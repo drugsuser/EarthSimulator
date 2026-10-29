@@ -426,9 +426,9 @@
   }
   const scenes = {
     solar: {
-      title: "Солнечная система",
+      title: "Земля",
       short: "Солнечная",
-      desc: "Солнце и восемь планет. Выберите мир — камера приблизит его.",
+      desc: "Фокус на Земле. Солнце и остальные планеты продолжают участвовать в симуляции.",
       rate: -1.5,
       build() {
         let sun = body({ ...presets.star, name: "Солнце", planet: "sun" });
@@ -1070,6 +1070,20 @@
       y: cam.y - xx * Math.sin(yaw) + yy * Math.cos(yaw),
       z,
     };
+  }
+  function creationPlane(){
+    const b=cameraBasis(),earth=earthAnchor(),z=Number($('spawnZ').value);
+    if(!Number.isFinite(z)||Math.abs(z)>1e8)return null;
+    const anchor=earth||cam,offset={x:anchor.x-cam.x,y:anchor.y-cam.y,z:anchor.z-cam.z+z};
+    const depth=b.distance+offset.x*b.forward.x+offset.y*b.forward.y+offset.z*b.forward.z;
+    if(!(depth>0))return null;
+    const center={};for(const k of ['x','y','z'])center[k]=b.eye[k]+b.forward[k]*depth;
+    return {center,right:b.right,up:b.up,pixelSize:depth/b.distance/scale};
+  }
+  function creationPoint(px,py,plane=creationPlane()){
+    if(!plane)return null;
+    const point={};for(const k of ['x','y','z'])point[k]=plane.center[k]+(plane.right[k]*(px-W/2)+plane.up[k]*(H/2-py))*plane.pixelSize;
+    return point;
   }
   function screenRadius(b, p) {
     if (window.FoundryRenderer) return window.FoundryRenderer.radius(b);
@@ -1770,12 +1784,14 @@
       mouse.y > 80 &&
       mouse.y < H - 100
     ) {
-      let w = unproject(mouse.x, mouse.y, Number($("spawnZ").value) || 0),
-        p = project(w.x, w.y, w.z);
-      ctx.strokeStyle = "#a9d8ff88";
+      let w = creationPoint(mouse.x,mouse.y);
+      if(!w)return;
+      let p = project(w.x, w.y, w.z),q=candidate(w,{vx:0,vy:0,vz:0});
+      const blocked=q&&bodies.some(a=>Math.hypot(q.x-a.x,q.y-a.y,q.z-a.z)<q.r+a.r);
+      ctx.strokeStyle = blocked?"#e58c7c":"#a9d8ff88";
       ctx.setLineDash([3, 4]);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 8, 0, TAU);
+      ctx.arc(p.x, p.y, q?Math.max(8,screenRadius(q,p)):8, 0, TAU);
       ctx.stroke();
       ctx.setLineDash([]);
       let c =
@@ -2019,7 +2035,7 @@
         $(id).textContent = "—";
     if (dirtyList) {
       $("bodyList").replaceChildren(
-        ...bodies.map((b) => {
+        ...bodies.filter(b=>b.planet==='earth'&&b.phase!=='dust').map((b) => {
           let bt = document.createElement("button");
           bt.className = "body-item" + (b.id === selected ? " active" : "");
           let sw = document.createElement("span");
@@ -2055,15 +2071,15 @@
   }
   function updateOrbitNote() {
     if (tool !== "orbit") return;
-    let c = bodies.find((b) => b.id === orbitAnchor) || getSelected();
+    let c = earthAnchor();
     $("toolDescription").textContent = c
       ? "Центр: «" +
         c.name +
-        "» закреплён. Щёлкните по другому телу, чтобы сменить центр."
-      : "Нет центра: сначала создайте звезду.";
+        "» закреплён. Щёлкните вне поверхности; контур показывает размер нового тела."
+      : "Земля отсутствует: восстановите систему для создания её спутников.";
   }
   function updateLaunchNote() {
-    let b = getSelected(),
+    let b = earthAnchor(),
       relative = $("launchFrame").value === "relative";
     $("launchFrameNote").textContent = relative
       ? b
@@ -2077,16 +2093,16 @@
     cancelPointer();
     tool = tl;
     if (tl !== "select" && window.showLeft) window.showLeft("create");
-    if (tl === "orbit") orbitAnchor = selected;
+    if (tl === "orbit") orbitAnchor = earthAnchor()?.id??null;
     $("launchControls").hidden = tl !== "launch";
     updateLaunchNote();
     document
       .querySelectorAll("[data-tool]")
       .forEach((b) => b.classList.toggle("active", b.dataset.tool === tl));
     let text = {
-      select: "Выберите тело. ЛКМ по пустоте — перемещение камеры.",
+      select: "Выберите объект в кадре. Перетаскивание вращает камеру вокруг Земли.",
       orbit:
-        "Выберите центр притяжения, затем щёлкните: тело получит круговую скорость.",
+        "Щёлкните вне Земли: объект получит круговую скорость относительно Земли.",
       launch:
         "Стрелка — начальная скорость, пунктир — путь под действием гравитации. Прицеливание приостанавливает время.",
       delete: "Щёлкните по телу, чтобы удалить его. Масса и энергия изменятся.",
@@ -2116,11 +2132,13 @@
     return best;
   }
   function launchVelocity(world, end) {
-    let w = unproject(end.x, end.y, world.z),
-      p = project(world.x, world.y, world.z),
+    let w = creationPoint(end.x, end.y, pointer?.spawnPlane||creationPlane());
+    if(!w)return {vx:0,vy:0,vz:0};
+    let p = project(world.x, world.y, world.z),
       dx = w.x - world.x,
       dy = w.y - world.y,
-      d = Math.hypot(dx, dy),
+      dz = w.z - world.z,
+      d = Math.hypot(dx, dy, dz),
       gain = Number($("launchGain").value),
       pixels = Math.hypot(end.x - p.x, end.y - p.y);
     if (
@@ -2132,10 +2150,10 @@
     )
       return { vx: 0, vy: 0, vz: 0 };
     let speed = ((pixels / 100) * gain) / VUNIT;
-    return { vx: (dx / d) * speed, vy: (dy / d) * speed, vz: 0 };
+    return { vx: (dx / d) * speed, vy: (dy / d) * speed, vz: (dz / d) * speed };
   }
   function initialLaunchVelocity(v) {
-    let ref = $("launchFrame").value === "relative" ? getSelected() : null;
+    let ref = $("launchFrame").value === "relative" ? earthAnchor() : null;
     return {
       vx: v.vx + (ref?.vx || 0),
       vy: v.vy + (ref?.vy || 0),
@@ -2234,20 +2252,18 @@
     }
     let p = presets[$("preset").value],
       mass = Number($("spawnMass").value),
-      z = Number($("spawnZ").value);
+      z = world?.z;
     if (
       !Number.isFinite(mass) ||
       mass < 1e-24 ||
       mass > 1e9 ||
-      !Number.isFinite(z) ||
+      !world || ![world.x,world.y,z].every(Number.isFinite) ||
       Math.abs(z) > 1e8
     ) {
       notify("Проверьте массу (10⁻²⁴…10⁹ M☉) и высоту.");
       return;
     }
-    let c = orb
-        ? bodies.find((b) => b.id === orbitAnchor) || getSelected()
-        : getSelected(),
+    let c = earthAnchor(),
       oldCV = c ? { vx: c.vx, vy: c.vy, vz: c.vz } : null,
       b = body({
         ...p,
@@ -2265,13 +2281,13 @@
       )
     ) {
       removeBody(b, true);
-      notify("Точка внутри физического тела. Выберите место дальше.");
+      notify("Объект пересекается с телом. Выберите точку дальше, уменьшите массу или отдалите камеру.");
       return;
     }
     if (c) {
       if (Math.hypot(b.x - c.x, b.y - c.y, b.z - c.z) < c.r + b.r) {
         removeBody(b, true);
-        notify("Точка внутри физического тела. Выберите место дальше.");
+        notify("Объект пересекается с телом. Выберите точку дальше, уменьшите массу или отдалите камеру.");
         return;
       }
       if (orb) {
@@ -2339,7 +2355,8 @@
       lastY: e.clientY,
       moved: false,
       hit: pick(e.clientX, e.clientY),
-      world: unproject(e.clientX, e.clientY, Number($("spawnZ").value) || 0),
+      spawnPlane: creationPlane(),
+      world: creationPoint(e.clientX, e.clientY),
     };
     if (tool === "launch" && e.button === 0) {
       pointer.wasPaused = paused;
@@ -2347,6 +2364,7 @@
       follow = null;
       updatePause();
     }
+    if(!pointer.world){cancelPointer();notify("Плоскость создания за камерой. Уменьшите смещение Z.");return;}
     cv.setPointerCapture(e.pointerId);
   });
   cv.addEventListener("pointermove", (e) => {
@@ -2379,7 +2397,7 @@
       removeBody(b);
       syncFields();
     } else if (tool === "orbit" && !p.moved) {
-      if (p.hit) {
+      if (p.hit?.id===earthAnchor()?.id) {
         orbitAnchor = p.hit.id;
         select(p.hit);
         updateOrbitNote();
@@ -3112,6 +3130,7 @@
     initialLaunchVelocity,
     candidate,
     previewLaunch,
+    creationPoint,
     safeStep,
     leap,
     accel,
