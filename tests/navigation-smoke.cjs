@@ -11,7 +11,7 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright');
   await page.goto(process.env.BASE_URL||'http://127.0.0.1:8038/');await ready();
   assert.equal(await page.evaluate(()=>OrbitFoundry.bodies.length),9);await locked();
   // Selecting a non-Earth planet must not change the view, including its scale.
-  const initial=await state();await page.locator('[data-planet-id="5"]').click();await page.waitForTimeout(250);
+  const initial=await state();assert.equal(await page.locator('[data-planet-id]').count(),1);await page.evaluate(()=>OrbitFoundry.select(5));await page.waitForTimeout(250);
   let s=await locked();assert.equal(s.selected,5);assert.equal(s.view.scale,initial.view.scale);assert.equal(s.view.yaw,initial.view.yaw);
   for(const key of ['r','c','f','t','Home']){await page.keyboard.press(key);await page.waitForTimeout(150);await locked();}
   await page.evaluate(()=>{OrbitFoundry.focusShowcase(true);OrbitFoundry.zoomBy(.5);});await page.waitForTimeout(500);

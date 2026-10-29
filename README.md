@@ -20,6 +20,14 @@ workers, tools, textures and import/export remain. The physics modules are uncha
 - JSON world format remains `orbit-foundry`, version 1, for compatibility. Imported camera
   follow targets cannot override the Earth anchor.
 
+## Object creation and planet list
+
+- Only Earth appears in planet-selection lists; all nine original bodies remain simulated.
+- New objects are placed on a camera-facing plane through Earth, avoiding the old world-XY ray intersection singularity at side views. The `spawnZ` control offsets this plane from Earth along world Z (AU).
+- Launch drags and trajectory previews share the same frozen 3D creation plane. Spawned objects retain its actual Z coordinate.
+- The default is a small asteroid with Earth-relative launch velocity. Circular-orbit creation uses Earth, not the last spawned object, as its reference.
+- The hover outline shows the new object size and turns red for physical overlap. Overlapping bodies are rejected instead of silently relocated.
+
 ## Run locally
 
 ```sh
@@ -35,6 +43,7 @@ No build step. Serve over HTTP so ES modules and the mesh worker can load.
 node tests/physics-budget.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/browser-smoke.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/navigation-smoke.cjs
+BASE_URL=http://127.0.0.1:8038/ node tests/spawn-smoke.cjs
 ```
 
 Browser tests require Playwright and Chromium (`CHROMIUM_PATH` may override its location).
