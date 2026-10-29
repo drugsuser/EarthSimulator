@@ -28,6 +28,14 @@ workers, tools, textures and import/export remain. The physics modules are uncha
 - The default is a small asteroid with Earth-relative launch velocity. Circular-orbit creation uses Earth, not the last spawned object, as its reference.
 - The hover outline shows the new object size and turns red for physical overlap. Overlapping bodies are rejected instead of silently relocated.
 
+## Earth appearance
+
+- Larger default framing (zoom only; Earth mass, radius, gravity and collision geometry are unchanged).
+- 4K day map and 2K cloud alpha map, locally bundled and derived from credited Solar System Scope sources.
+- Dielectric PBR surface: ocean mask controls water/land roughness, water-like IOR 1.333, reduced normal-map strength, subtle cloud coverage shading, and night-only city lights.
+- Separate thin cloud layer (~11 km for the physical Earth radius) and a lightweight view/Sun-angle atmosphere approximation, not a full scattering solver or weather model.
+- Near-black background `#04060b` and a small star-visibility lift. No bloom, ray marching, new shadow maps or increased star count.
+
 ## Run locally
 
 ```sh
@@ -44,6 +52,7 @@ node tests/physics-budget.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/browser-smoke.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/navigation-smoke.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/spawn-smoke.cjs
+BASE_URL=http://127.0.0.1:8038/ node tests/visual-smoke.cjs
 ```
 
 Browser tests require Playwright and Chromium (`CHROMIUM_PATH` may override its location).

@@ -38,3 +38,12 @@ NASA Planetary Fact Sheets: https://nssdc.gsfc.nasa.gov/planetary/factsheet/
 Definitions and retrograde sign conventions: https://nssdc.gsfc.nasa.gov/planetary/factsheet/fact_notes.html
 
 Atmospheric rims, the Sun's faint glow, and Uranus's faint ringlets are illustrative rendering effects in `scene.js`.
+
+## EarthSimulator higher-detail Earth maps
+
+Author: **Solar System Scope**, CC BY 4.0 (same attribution and license above).
+
+- `assets/earth-day-4k.jpg`: derived from https://www.solarsystemscope.com/textures/download/8k_earth_daymap.jpg — downsampled to 4096 × 2048, re-encoded JPEG quality 91.
+- `assets/earth-clouds-2k.jpg`: derived from https://www.solarsystemscope.com/textures/download/8k_earth_clouds.jpg — downsampled to 2048 × 1024, grayscale cloud coverage re-encoded as JPEG quality 90, sampled as a linear alpha mask.
+
+These are static illustrative maps, not real-time weather or satellite imagery.
