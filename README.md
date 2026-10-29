@@ -1,1 +1,43 @@
 # EarthSimulator
+
+Earth-focused fork of [Orbit Foundry](https://github.com/drugsuser/orbit-foundry).
+All nine original bodies, N-body gravity, collision physics, solid deformation,
+workers, tools, textures and import/export remain. The physics modules are unchanged.
+
+## Camera
+
+- The look-at target follows Earth, independently of the selected inspector body.
+- Right drag rotates around Earth; the View tab retains the 20–300% sensitivity control.
+- W/S zoom; A/D orbit horizontally; Q/E orbit vertically. Shift accelerates keyboard input.
+- Mouse and keys work simultaneously. Left/middle drag also orbit instead of panning away.
+- R / C / “К Земле” return to the Earth close-up. F shows the whole system centered on Earth.
+- Earth crater inspection is an Earth-relative surface view. Other bodies still have impact reports.
+- If Earth is destroyed, deleted or absent from an import, the camera holds its last target;
+  it does not attach to another planet. Restoring a world with Earth restores the anchor.
+- Earth is identified by its `planet: "earth"` marker, not its editable name or hard-coded ID.
+- Saves and sensitivity use separate `earth-simulator-*` localStorage keys, so this fork
+  does not overwrite Orbit Foundry data on the same GitHub Pages origin.
+- JSON world format remains `orbit-foundry`, version 1, for compatibility. Imported camera
+  follow targets cannot override the Earth anchor.
+
+## Run locally
+
+```sh
+python3 -m http.server 8038
+# Open http://localhost:8038
+```
+
+No build step. Serve over HTTP so ES modules and the mesh worker can load.
+
+## Tests
+
+```sh
+node tests/physics-budget.cjs
+BASE_URL=http://127.0.0.1:8038/ node tests/browser-smoke.cjs
+BASE_URL=http://127.0.0.1:8038/ node tests/navigation-smoke.cjs
+```
+
+Browser tests require Playwright and Chromium (`CHROMIUM_PATH` may override its location).
+The upstream full mechanics guide is preserved in [ORBIT_FOUNDRY_README.md](ORBIT_FOUNDRY_README.md);
+its free-flight camera descriptions are superseded by the Earth camera rules above.
+See [ASSET_CREDITS.md](ASSET_CREDITS.md) and the retained Three.js license for asset credits.
