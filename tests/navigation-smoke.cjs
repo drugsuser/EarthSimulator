@@ -45,7 +45,7 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright');
   assert.deepEqual((await state()).view.cam,missing.view.cam);
   await page.waitForFunction(()=>document.getElementById('navMode').textContent.includes('Земля отсутствует'));
   await page.evaluate(()=>OrbitFoundry.loadScene('solar'));await page.evaluate(()=>{OrbitFoundry.pause();OrbitFoundry.focusShowcase(true);});await locked();
-  await page.locator('[data-left="display"]').click();await page.locator('#resetLookSensitivity').click();
+  await page.locator('#settingsBtn').click();await page.locator('#resetLookSensitivity').click();
   await page.screenshot({path:process.env.SHOT_PATH||'/data/earth-camera.png'});
   assert.deepEqual(errors,[]);console.log(JSON.stringify({combinations,deltas,earthLock:true,selectionIndependent:true,importOverride:true,missingEarth:true,errors}));console.log('navigation-smoke: OK');
  }finally{await browser.close();}

@@ -4,10 +4,19 @@ Earth-focused fork of [Orbit Foundry](https://github.com/drugsuser/orbit-foundry
 All nine original bodies, N-body gravity, collision physics, solid deformation,
 workers, tools, textures and import/export remain. The physics modules are unchanged.
 
+## Interface
+
+- Two experiment modes: **Collision** and **Create object**. Earth remains the camera anchor, independently of inspector selection.
+- Persistent telemetry: object velocity, barycentric distance, acceleration, temperature estimate, BH clock diagnostic, escape speed, orbital elements and period.
+- A two-row instrument bar keeps simulation time, speed, body count, energy drift, total mass, momentum, integration steps and FPS visible without switching tabs.
+- Right-drag sensitivity and less frequent view, physics, save/import/export and object-editing controls live in a keyboard-accessible Settings dialog. Camera hotkeys are blocked while it is open.
+- Impact results appear first in the experiment panel; closing the report restores the compact launch controls. Destructive reset actions are grouped in a disclosure.
+- Desktop application (window wider than 1000 px); narrow screens show an explicit notice rather than a broken simulation UI.
+
 ## Camera
 
 - The look-at target follows Earth, independently of the selected inspector body.
-- Right drag rotates around Earth; the View tab retains the 20–300% sensitivity control.
+- Right drag rotates around Earth; Settings → View retains the 20–300% sensitivity control.
 - W/S zoom; A/D orbit horizontally; Q/E orbit vertically. Shift accelerates keyboard input.
 - Mouse and keys work simultaneously. Left/middle drag also orbit instead of panning away.
 - R / C / “К Земле” return to the Earth close-up. F shows the whole system centered on Earth.
@@ -53,6 +62,7 @@ BASE_URL=http://127.0.0.1:8038/ node tests/browser-smoke.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/navigation-smoke.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/spawn-smoke.cjs
 BASE_URL=http://127.0.0.1:8038/ node tests/visual-smoke.cjs
+BASE_URL=http://127.0.0.1:8038/ node tests/ui-smoke.cjs
 ```
 
 Browser tests require Playwright and Chromium (`CHROMIUM_PATH` may override its location).

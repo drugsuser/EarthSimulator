@@ -31,6 +31,6 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright');
  // Creation must not accept physical overlaps or non-finite positions.
  const rejected=await page.evaluate(()=>{const a=OrbitFoundry,n=a.bodies.length,e=a.bodies.find(b=>b.planet==='earth');a.spawn({x:e.x,y:e.y,z:e.z});a.spawn({x:NaN,y:0,z:0});return {before:n,after:a.bodies.length};});assert.equal(rejected.before,rejected.after);
  await page.waitForFunction(()=>document.querySelectorAll('#planetNavigator [data-planet-id]').length===1);assert.equal(await page.evaluate(()=>OrbitFoundry.bodies.filter(b=>b.planet).length),9);
- await page.evaluate(()=>{document.getElementById('spawnZ').value='0';OrbitFoundry.select(OrbitFoundry.cameraAnchorId);});await page.locator('[data-left="create"]').click();await page.mouse.move(1120,400);await page.screenshot({path:process.env.SHOT_PATH||'/data/earth-spawn.png'});
+ await page.evaluate(()=>{document.getElementById('spawnZ').value='0';OrbitFoundry.select(OrbitFoundry.cameraAnchorId);});await page.locator('#manualModeBtn').click();await page.mouse.move(1120,400);await page.screenshot({path:process.env.SHOT_PATH||'/data/earth-spawn.png'});
  assert.deepEqual(errors,[]);console.log(JSON.stringify({cases,launch3D:true,previewMatches:true,onlyEarthListed:true,allPlanetsSimulated:true,overlapRejected:true,errors}));console.log('spawn-smoke: OK');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});
