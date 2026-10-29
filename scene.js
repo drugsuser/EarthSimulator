@@ -1,13 +1,13 @@
 import * as THREE from './vendor/three.module.min.js';
-import earthDay from './assets/earth-day.js';
+const earthDay='./assets/earth-day-4k.jpg';
 import earthNormal from './assets/earth-normal.js';
 import earthSpecular from './assets/earth-specular.js';
-import earthClouds from './assets/earth-clouds.js';
+const earthClouds='./assets/earth-clouds-2k.jpg';
 import moonMap from './assets/moon.js';
 const $=id=>document.getElementById(id),api=window.OrbitFoundry;
 const SCALE=10000,objects=new Map(),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.001,1e9);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x010203);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;$('webgl').append(renderer.domElement);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x04060b);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;$('webgl').append(renderer.domElement);
 // One light at the actual Sun: the terminator is independent of texture spin and camera.
 const sunLight=new THREE.PointLight(0xfff8ef,3.1,0,0);scene.add(sunLight);
 const fillLight=new THREE.AmbientLight(0xb4c2d4,.10);scene.add(fillLight);
@@ -15,14 +15,24 @@ const inspectLight=new THREE.DirectionalLight(0xffe7cf,0);scene.add(inspectLight
 const sphere=new THREE.SphereGeometry(1,96,64);sphere.rotateX(Math.PI/2);
 const manager=new THREE.LoadingManager();manager.onLoad=()=>{ if($('loading')){$('loading').classList.add('gone');setTimeout(()=>$('loading')?.remove(),700)}api.focusShowcase(true)};manager.onError=url=>{$('loadStatus').textContent='Ошибка текстуры — используется резервный материал';console.error('Texture failed:',url.slice(0,80))};
 const loader=new THREE.TextureLoader(manager);function tex(uri,srgb=true){let t=loader.load(uri);t.wrapS=THREE.RepeatWrapping;if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t}
-const maps={earth:tex(earthDay),normal:tex(earthNormal,false),specular:tex(earthSpecular,false),clouds:tex(earthClouds),moon:tex(moonMap),
+const maps={earth:tex(earthDay),normal:tex(earthNormal,false),specular:tex(earthSpecular,false),clouds:tex(earthClouds,false),moon:tex(moonMap),
 mercury:tex('./assets/mercury.jpg'),venus:tex('./assets/venus_atmosphere.jpg'),mars:tex('./assets/mars.jpg'),jupiter:tex('./assets/jupiter.jpg'),saturn:tex('./assets/saturn.jpg'),uranus:tex('./assets/uranus.jpg'),neptune:tex('./assets/neptune.jpg'),sun:tex('./assets/sun.jpg'),night:tex('./assets/earth_nightmap.jpg'),rings:tex('./assets/saturn_ring_alpha.png')};
 let seed=18741;const rand=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296};
-// Quiet, genuinely black backdrop. Stars are small, distant points, never a glowing fog.
-const starPositions=[],starColors=[];for(let i=0;i<950;i++){let z=rand()*2-1,a=rand()*Math.PI*2,r=Math.sqrt(1-z*z),d=60000;starPositions.push(Math.cos(a)*r*d,Math.sin(a)*r*d,z*d);let br=.08+Math.pow(rand(),5)*.35;starColors.push(br*.86,br*.92,br)}
-let starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));starGeo.setAttribute('color',new THREE.Float32BufferAttribute(starColors,3));let stars=new THREE.Points(starGeo,new THREE.PointsMaterial({size:1.05,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.75,depthWrite:false}));scene.add(stars);
+// Near-black blue backdrop: a small visibility lift, without fog or post-processing.
+const starPositions=[],starColors=[];for(let i=0;i<950;i++){let z=rand()*2-1,a=rand()*Math.PI*2,r=Math.sqrt(1-z*z),d=60000;starPositions.push(Math.cos(a)*r*d,Math.sin(a)*r*d,z*d);let br=.10+Math.pow(rand(),5)*.35;starColors.push(br*.86,br*.92,br)}
+let starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));starGeo.setAttribute('color',new THREE.Float32BufferAttribute(starColors,3));let stars=new THREE.Points(starGeo,new THREE.PointsMaterial({size:1.05,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.82,depthWrite:false}));scene.add(stars);
 const atmosphereVertex=`varying vec3 vN; varying vec3 vP; void main(){vec4 w=modelMatrix*vec4(position,1.);vP=w.xyz;vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*w;}`;
 const atmosphereFragment=`varying vec3 vN;varying vec3 vP;uniform vec3 lightDir;uniform vec3 tint;void main(){vec3 n=normalize(vN),v=normalize(cameraPosition-vP);float edge=pow(1.-abs(dot(n,v)),4.);float day=smoothstep(-.16,.45,dot(n,normalize(lightDir)));gl_FragColor=vec4(tint,edge*day*.43);}`;
+// View-angle/solar-angle approximation of atmospheric scattering, not a full atmosphere solver.
+const earthAtmosphereFragment=`varying vec3 vN;varying vec3 vP;uniform vec3 lightDir;uniform vec3 tint;
+void main(){vec3 n=normalize(vN),v=normalize(cameraPosition-vP),l=normalize(lightDir);
+float mu=clamp(dot(n,v),0.,1.),sun=dot(n,l);
+float limb=pow(1.-mu,3.2),day=smoothstep(-.13,.30,sun);
+float phase=.75*(1.+pow(dot(v,l),2.));
+float dusk=(1.-smoothstep(.02,.25,abs(sun)))*smoothstep(-.13,.02,sun);
+vec3 scattering=mix(tint,vec3(.48,.23,.105),dusk*.28);
+float alpha=(limb*.42+pow(1.-mu,1.5)*.018)*day*phase;
+gl_FragColor=vec4(scattering,alpha);}`;
 // Rotation periods and axial inclinations: NASA planetary fact sheets.
 const planetData={
  sun:{label:'Солнце',latin:'SOL',tag:'Звезда, которая держит всё вместе.',hours:609.12,tilt:7.25,period:65,color:'#ffce84'},
@@ -80,12 +90,16 @@ function build(b){
  if(b.kind==='bh')mat=new THREE.MeshBasicMaterial({color:0x000000});
  else if(key==='sun')mat=new THREE.MeshBasicMaterial({map:maps.sun,color:0xffe9c2,toneMapped:false});
  else if(earth){
-  mat=new THREE.MeshPhongMaterial({map:maps.earth,normalMap:maps.normal,normalScale:new THREE.Vector2(.28,.28),specularMap:maps.specular,specular:new THREE.Color(.012,.014,.016),shininess:125});
+  mat=new THREE.MeshPhysicalMaterial({map:maps.earth,normalMap:maps.normal,normalScale:new THREE.Vector2(.13,.13),roughness:.88,metalness:0,ior:1.333,specularIntensity:.85});
   // Cities only on the night hemisphere. The Sun direction is evaluated in world space.
   mat.onBeforeCompile=shader=>{
    shader.uniforms.nightMap={value:maps.night};shader.uniforms.toSun={value:new THREE.Vector3()};
+   shader.uniforms.oceanMask={value:maps.specular};shader.uniforms.cloudMap={value:maps.clouds};shader.uniforms.cloudShift={value:0};
    shader.vertexShader='varying vec3 earthNormal; varying vec3 earthWorld;\n'+shader.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nearthNormal=normalize(mat3(modelMatrix)*objectNormal);earthWorld=(modelMatrix*vec4(transformed,1.)).xyz;');
-   shader.fragmentShader='uniform sampler2D nightMap;uniform vec3 toSun;varying vec3 earthNormal;varying vec3 earthWorld;\n'+shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat nightFactor=1.-smoothstep(-.2,.12,dot(normalize(earthNormal),normalize(toSun-earthWorld)));totalEmissiveRadiance+=texture2D(nightMap,vMapUv).rgb*nightFactor*.65;');
+   shader.fragmentShader='uniform sampler2D nightMap;uniform sampler2D oceanMask;uniform sampler2D cloudMap;uniform float cloudShift;uniform vec3 toSun;varying vec3 earthNormal;varying vec3 earthWorld;\n'+shader.fragmentShader
+    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nfloat ocean=texture2D(oceanMask,vMapUv).r;roughnessFactor=mix(.88,.18,smoothstep(.12,.85,ocean));')
+    .replace('#include <map_fragment>','#include <map_fragment>\nfloat cloudCover=texture2D(cloudMap,vMapUv-vec2(cloudShift,0.)).r;float sea=smoothstep(.12,.85,texture2D(oceanMask,vMapUv).r);float luminance=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(luminance),sea*.18)*mix(.92,.65,sea)*(1.-cloudCover*.14);')
+    .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat nightFactor=1.-smoothstep(-.18,.10,dot(normalize(earthNormal),normalize(toSun-earthWorld)));totalEmissiveRadiance+=texture2D(nightMap,vMapUv).rgb*nightFactor*.65*.65;');
    mat.userData.shader=shader;
   };
  }else if(key)mat=new THREE.MeshStandardMaterial({map:maps[key],roughness:key==='venus'?.98:.92,metalness:0,bumpMap:['mercury','mars'].includes(key)?maps[key]:null,bumpScale:key==='mercury'?.006:.002});
@@ -101,9 +115,9 @@ function build(b){
  const surface=b.phase==='dust'?new THREE.Points(dustGeometry(b.id),new THREE.PointsMaterial({vertexColors:true,transparent:true,opacity:.8,size:Math.max(b.r*SCALE*.009,1e-7),sizeAttenuation:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false})):b.phase==='gas'?new THREE.Sprite(new THREE.SpriteMaterial({map:fogTexture,color:b.color,transparent:true,opacity:.75,depthWrite:false,toneMapped:false})):new THREE.Mesh(geometry,mat);
  if(b.phase==='gas'){surface.scale.set(3,3,1);mat.dispose();if(geometry!==sphere)geometry.dispose();}else if(b.phase==='dust'){mat.dispose();if(geometry!==sphere)geometry.dispose();}else surface.scale.z=1-(data?.flatten||0);axis.add(surface);
  let cloud=null,atm=null,ring=null,glow=null;
- if(earth){const cloudMat=new THREE.MeshPhongMaterial({map:maps.clouds,transparent:true,opacity:.58,depthWrite:false,specular:0x000000});cloudMat.onBeforeCompile=sh=>{sh.vertexShader='attribute float interior;varying float vCloudInside;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvCloudInside=interior;');sh.fragmentShader='varying float vCloudInside;\n'+sh.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(vCloudInside>.01)discard;');};cloud=new THREE.Mesh(sphere,cloudMat);cloud.scale.setScalar(1.009);axis.add(cloud);}
+ if(earth){const cloudMat=new THREE.MeshPhongMaterial({alphaMap:maps.clouds,color:0xffffff,transparent:true,opacity:.78,depthWrite:false,specular:0x000000});cloudMat.onBeforeCompile=sh=>{sh.vertexShader='attribute float interior;varying float vCloudInside;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvCloudInside=interior;');sh.fragmentShader='varying float vCloudInside;\n'+sh.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(vCloudInside>.01)discard;');};cloud=new THREE.Mesh(sphere,cloudMat);cloud.scale.setScalar(1.0018);axis.add(cloud);}
  const hues={earth:new THREE.Vector3(.12,.38,.78),venus:new THREE.Vector3(.72,.46,.18),mars:new THREE.Vector3(.42,.18,.10),uranus:new THREE.Vector3(.2,.55,.64),neptune:new THREE.Vector3(.13,.29,.64)};
- if(hues[key]){atm=new THREE.Mesh(sphere,new THREE.ShaderMaterial({vertexShader:atmosphereVertex,fragmentShader:atmosphereFragment,uniforms:{lightDir:{value:new THREE.Vector3()},tint:{value:hues[key]}},transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending}));atm.scale.set(1.018,1.018,(1-(data?.flatten||0))*1.018);axis.add(atm);}
+ if(hues[key]){atm=new THREE.Mesh(sphere,new THREE.ShaderMaterial({vertexShader:atmosphereVertex,fragmentShader:earth?earthAtmosphereFragment:atmosphereFragment,uniforms:{lightDir:{value:new THREE.Vector3()},tint:{value:hues[key]}},transparent:true,side:earth?THREE.FrontSide:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending}));const shell=earth?1.012:1.018;atm.scale.set(shell,shell,(1-(data?.flatten||0))*shell);axis.add(atm);}
  if(key==='saturn'||b.ring){
   const geometry=new THREE.RingGeometry(1.19,2.34,192,8),pos=geometry.attributes.position,uv=geometry.attributes.uv;
   for(let i=0;i<pos.count;i++)uv.setXY(i,(Math.hypot(pos.getX(i),pos.getY(i))-1.19)/1.15,.5);
@@ -164,7 +178,7 @@ window.FoundryRenderer={sculpt,pendingSolids,meshStats,prepareSolid,impact,local
   position(b.x,b.y,b.z,o.group.position);o.group.scale.setScalar(visualRadius(b));
   const d=o.data,inspecting=api.surfaceInspection?.body===b.id;
   if(inspecting&&!o.originalMaterial){o.originalMaterial=o.surface.material;o.inspectionMaterial=new THREE.MeshStandardMaterial({color:0x969c9a,roughness:.96});decorateSolidMaterial(o.inspectionMaterial,'inspection');o.surface.material=o.inspectionMaterial;}else if(!inspecting&&o.originalMaterial){o.surface.material=o.originalMaterial;o.inspectionMaterial.dispose();o.originalMaterial=null;o.inspectionMaterial=null;}
-  if(o.cloud)o.cloud.visible=!inspecting;if(o.atm&&inspecting)o.atm.visible=false;if(b.phase==='dust')o.group.visible=!api.surfaceInspection;else o.group.visible=true;
+  if(o.cloud)o.cloud.visible=!inspecting;if(o.atm)o.atm.visible=!inspecting;if(b.phase==='dust')o.group.visible=!api.surfaceInspection;else o.group.visible=true;
   if(!spinPaused&&!b.solidLock&&b.phase!=='dust'){
    const delta=mode==='physical'?(physicsDelta>=0?physicsDelta:0)*365.25*24/Math.abs(d?.hours||24)*Math.PI*2:dt/(d?.period||40)*Math.PI*2;
    o.spin=(o.spin+delta)%(Math.PI*2);
@@ -181,7 +195,7 @@ window.FoundryRenderer={sculpt,pendingSolids,meshStats,prepareSolid,impact,local
   if(o.surface.material.userData.solidShader)o.surface.material.userData.solidShader.uniforms.solidHeat.value=inspecting?0:.004+.065*Math.exp(-(performance.now()-(o.heatBorn||0))/10000);
   if(o.cloud)o.cloud.rotation.z=b.solid?.cuts.length?o.surface.rotation.z:o.spin*1.025+2.32;
   if(o.atm)o.atm.material.uniforms.lightDir.value.copy(sunLight.position).sub(o.group.position).normalize();
-  if(o.surface.material.userData.shader)o.surface.material.userData.shader.uniforms.toSun.value.copy(sunLight.position);
+  if(o.surface.material.userData.shader){const u=o.surface.material.userData.shader.uniforms;u.toSun.value.copy(sunLight.position);if(u.cloudShift)u.cloudShift.value=((o.cloud?.rotation.z||0)-o.surface.rotation.z)/(Math.PI*2);}
   const rs=o.ring?.material.userData.shader;if(rs){rs.uniforms.planetCenter.value.copy(o.group.position);rs.uniforms.solarPosition.value.copy(sunLight.position);rs.uniforms.planetRadius.value=o.group.scale.x;}
  }
  inspectLight.intensity=api.surfaceInspection?4.5:0;if(api.surfaceInspection){inspectLight.position.copy(camera.position);inspectLight.target.position.set(0,0,0);fillLight.intensity=.85;}else fillLight.intensity=$('lightingMode').value==='inspect'?.65:.10;
