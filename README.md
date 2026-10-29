@@ -43,7 +43,7 @@ workers, tools, textures and import/export remain. The physics modules are uncha
 - 4K day map and 2K cloud alpha map, locally bundled and derived from credited Solar System Scope sources.
 - Dielectric PBR surface: ocean mask controls water/land roughness, water-like IOR 1.333, reduced normal-map strength, subtle cloud coverage shading, and night-only city lights.
 - Separate thin cloud layer (~11 km for the physical Earth radius) and a lightweight view/Sun-angle atmosphere approximation, not a full scattering solver or weather model.
-- Near-black background `#04060b` and a small star-visibility lift. No bloom, ray marching, new shadow maps or increased star count.
+- Original near-black background `#010203` and restrained star brightness. No bloom, ray marching, new shadow maps or increased star count.
 
 ## Run locally
 

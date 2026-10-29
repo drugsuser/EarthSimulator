@@ -7,7 +7,7 @@ import moonMap from './assets/moon.js';
 const $=id=>document.getElementById(id),api=window.OrbitFoundry;
 const SCALE=10000,objects=new Map(),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.001,1e9);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x04060b);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;$('webgl').append(renderer.domElement);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x010203);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;$('webgl').append(renderer.domElement);
 // One light at the actual Sun: the terminator is independent of texture spin and camera.
 const sunLight=new THREE.PointLight(0xfff8ef,3.1,0,0);scene.add(sunLight);
 const fillLight=new THREE.AmbientLight(0xb4c2d4,.10);scene.add(fillLight);
@@ -18,9 +18,9 @@ const loader=new THREE.TextureLoader(manager);function tex(uri,srgb=true){let t=
 const maps={earth:tex(earthDay),normal:tex(earthNormal,false),specular:tex(earthSpecular,false),clouds:tex(earthClouds,false),moon:tex(moonMap),
 mercury:tex('./assets/mercury.jpg'),venus:tex('./assets/venus_atmosphere.jpg'),mars:tex('./assets/mars.jpg'),jupiter:tex('./assets/jupiter.jpg'),saturn:tex('./assets/saturn.jpg'),uranus:tex('./assets/uranus.jpg'),neptune:tex('./assets/neptune.jpg'),sun:tex('./assets/sun.jpg'),night:tex('./assets/earth_nightmap.jpg'),rings:tex('./assets/saturn_ring_alpha.png')};
 let seed=18741;const rand=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296};
-// Near-black blue backdrop: a small visibility lift, without fog or post-processing.
-const starPositions=[],starColors=[];for(let i=0;i<950;i++){let z=rand()*2-1,a=rand()*Math.PI*2,r=Math.sqrt(1-z*z),d=60000;starPositions.push(Math.cos(a)*r*d,Math.sin(a)*r*d,z*d);let br=.10+Math.pow(rand(),5)*.35;starColors.push(br*.86,br*.92,br)}
-let starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));starGeo.setAttribute('color',new THREE.Float32BufferAttribute(starColors,3));let stars=new THREE.Points(starGeo,new THREE.PointsMaterial({size:1.05,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.82,depthWrite:false}));scene.add(stars);
+// Original near-black space background and restrained star visibility.
+const starPositions=[],starColors=[];for(let i=0;i<950;i++){let z=rand()*2-1,a=rand()*Math.PI*2,r=Math.sqrt(1-z*z),d=60000;starPositions.push(Math.cos(a)*r*d,Math.sin(a)*r*d,z*d);let br=.08+Math.pow(rand(),5)*.35;starColors.push(br*.86,br*.92,br)}
+let starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));starGeo.setAttribute('color',new THREE.Float32BufferAttribute(starColors,3));let stars=new THREE.Points(starGeo,new THREE.PointsMaterial({size:1.05,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.75,depthWrite:false}));scene.add(stars);
 const atmosphereVertex=`varying vec3 vN; varying vec3 vP; void main(){vec4 w=modelMatrix*vec4(position,1.);vP=w.xyz;vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*w;}`;
 const atmosphereFragment=`varying vec3 vN;varying vec3 vP;uniform vec3 lightDir;uniform vec3 tint;void main(){vec3 n=normalize(vN),v=normalize(cameraPosition-vP);float edge=pow(1.-abs(dot(n,v)),4.);float day=smoothstep(-.16,.45,dot(n,normalize(lightDir)));gl_FragColor=vec4(tint,edge*day*.43);}`;
 // View-angle/solar-angle approximation of atmospheric scattering, not a full atmosphere solver.
