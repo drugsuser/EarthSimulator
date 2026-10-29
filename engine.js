@@ -1851,7 +1851,7 @@
   }
   function drawCompass() {
     if(document.body.classList.contains('hidden-ui'))return;
-    const x=W-(W<1250?286:330),y=H-167,b=cameraBasis();
+    const x=W-(W<1200?320:W<1400?336:360),y=H-(W<1200?298:210),b=cameraBasis();
     ctx.font='12px -apple-system, Segoe UI, sans-serif';ctx.lineWidth=1.5;
     for(const [k,c]of [['x','#da9b96'],['y','#a2c4a0'],['z','#8fb9e4']]){
       const dx=b.right[k]*28,dy=-b.up[k]*28;
